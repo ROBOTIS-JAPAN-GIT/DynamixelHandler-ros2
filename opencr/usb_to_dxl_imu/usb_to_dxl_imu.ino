@@ -5,7 +5,7 @@
 
 
 
-#define DXL_USB_VER           20170915
+#define DXL_USB_VER           20240114
 
 #define CMD_PORT              Serial      // USB
 #define DBG_PORT              Serial2     // UART1
