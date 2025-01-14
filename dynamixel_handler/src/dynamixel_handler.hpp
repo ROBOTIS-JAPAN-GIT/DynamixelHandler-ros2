@@ -38,6 +38,12 @@
 #include "dynamixel_handler_msgs/msg/dynamixel_debug.hpp"
 #include "dynamixel_handler_msgs/msg/dynamixel_shortcut.hpp"
 
+#include "sensor_msgs/msg/imu.hpp"
+#include "std_msgs/msg/empty.hpp"
+using namespace std_msgs::msg;
+using namespace sensor_msgs::msg;
+using namespace std::chrono_literals;
+
 using namespace dynamixel_handler_msgs::msg;
 
 #include <string>
@@ -319,7 +325,18 @@ class DynamixelHandler : public rclcpp::Node {
         template <typename Addr=AddrCommon> void CheckDynamixels(const set<id_t>& id_set=id_set_);
 
         class ExternalPort; // XH540とPシリーズに搭載されている外部ポートを使用するためのクラス，実際の宣言と定義は別ファイル
-        std::unique_ptr<ExternalPort> external_port_; // 
+        std::unique_ptr<ExternalPort> external_port_; //
+
+        // IMU
+        rclcpp::Publisher<Imu>::SharedPtr pub_imu_;
+        rclcpp::Subscription<Empty>::SharedPtr sub_imu_calib_;
+        vector<DynamixelAddress> addr_imu_list_;
+        void CallbackImuCalibGyro(const Empty::SharedPtr msg);
+        static constexpr uint8_t id_imu_ = 40;
+        static constexpr double res_acc_ = 8.0 / 32768.0;      // 8g
+        static constexpr double res_gyro_ = 2000.0 / 32768.0;  // 2000dps
+        void InitImu();
+        bool ReadBroadcastImu();
 };
 
 #endif /* DYNAMIXEL_HANDLER_H */

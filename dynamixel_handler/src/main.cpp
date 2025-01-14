@@ -167,6 +167,8 @@ DynamixelHandler::DynamixelHandler() : Node("dynamixel_handler", rclcpp::NodeOpt
         pub_error_  = create_publisher<DynamixelError>  ("dynamixel/state/error", 4);
     }
 
+    InitImu();
+
     BroadcastState_Status();
     BroadcastState_Limit();
     BroadcastState_Gain();  
@@ -239,6 +241,7 @@ void DynamixelHandler::MainLoop(){
         n_present_read++;
         n_present_suc_p += !target_id_set.empty()  && success_rate[PRESENT] > 0.0;
         n_present_suc_f +=  target_id_set==id_set_ && success_rate[PRESENT] > 1.0-1e-6;
+        ReadBroadcastImu();
         if ( success_rate[PRESENT]>0.0 ) msg.present = BroadcastState_Present();
     }
     if ( pub_ratio_["goal"] && cnt % pub_ratio_["goal"] == 0 ) {
@@ -277,6 +280,62 @@ void DynamixelHandler::MainLoop(){
     }
     if ( cnt % max({(int)loop_rate_, (int)ratio_mainloop_, 10}) == 0)
         t_read = n_present_suc_p = n_present_suc_f = n_present_read = n_any_read = 0.00001; /* present value の read の周期で行われてる処理の初期化 */ 
+}
+
+void DynamixelHandler::InitImu(){
+    pub_imu_ = create_publisher<Imu>("imu", 4);
+    sub_imu_calib_ = create_subscription<Empty>("imu/calibration_gyro", 10, bind(&DynamixelHandler::CallbackImuCalibGyro, this, _1));
+    DynamixelAddress addr_gx(76, DynamixelDataType::TYPE_INT16);
+    DynamixelAddress addr_gy(78, DynamixelDataType::TYPE_INT16);
+    DynamixelAddress addr_gz(80, DynamixelDataType::TYPE_INT16);
+    DynamixelAddress addr_ax(82, DynamixelDataType::TYPE_INT16);
+    DynamixelAddress addr_ay(84, DynamixelDataType::TYPE_INT16);
+    DynamixelAddress addr_az(86, DynamixelDataType::TYPE_INT16);
+    DynamixelAddress addr_quat_x(88, DynamixelDataType::TYPE_INT32);
+    DynamixelAddress addr_quat_y(92, DynamixelDataType::TYPE_INT32);
+    DynamixelAddress addr_quat_z(96, DynamixelDataType::TYPE_INT32);
+    DynamixelAddress addr_quat_w(100, DynamixelDataType::TYPE_INT32);
+    addr_imu_list_.push_back(addr_gx);
+    addr_imu_list_.push_back(addr_gy);
+    addr_imu_list_.push_back(addr_gz);
+    addr_imu_list_.push_back(addr_ax);
+    addr_imu_list_.push_back(addr_ay);
+    addr_imu_list_.push_back(addr_az);
+    addr_imu_list_.push_back(addr_quat_x);
+    addr_imu_list_.push_back(addr_quat_y);
+    addr_imu_list_.push_back(addr_quat_z);
+    addr_imu_list_.push_back(addr_quat_w);
+}
+
+bool DynamixelHandler::ReadBroadcastImu(){
+    auto result = dyn_comm_.Read(addr_imu_list_, id_imu_);
+    if (result.size() != addr_imu_list_.size())
+        return false;
+    Imu msg_imu;
+    msg_imu.header.frame_id = "base_link";
+    msg_imu.header.stamp = this->get_clock()->now();
+    msg_imu.angular_velocity.x = (double)result[1] * res_gyro_;
+    msg_imu.angular_velocity.y = (double)result[2] * res_gyro_;
+    msg_imu.angular_velocity.z = (double)result[3] * res_gyro_;
+    msg_imu.linear_acceleration.x = (double)result[4] * res_acc_;
+    msg_imu.linear_acceleration.y = (double)result[5] * res_acc_;
+    msg_imu.linear_acceleration.z = (double)result[6] * res_acc_;
+    int32_t quat[4] = {int32_t(result[6]), int32_t(result[7]), int32_t(result[8]), int32_t(result[9])};
+    float* quatF = (float*)quat;
+    msg_imu.orientation.x = quatF[0];
+    msg_imu.orientation.y = quatF[1];
+    msg_imu.orientation.z = quatF[2];
+    msg_imu.orientation.w = quatF[3];
+    pub_imu_->publish(msg_imu);
+    return true;
+}
+
+void DynamixelHandler::CallbackImuCalibGyro(const std_msgs::msg::Empty::SharedPtr msg) {
+    DynamixelAddress addr_calib(64, DynamixelDataType::TYPE_UINT8);
+    if (dyn_comm_.Write(addr_calib, id_imu_, 1)) {
+        ROS_INFO("Calibration Gyro ...");
+        rclcpp::sleep_for(5000ms);
+    }
 }
 
 DynamixelHandler::~DynamixelHandler(){
