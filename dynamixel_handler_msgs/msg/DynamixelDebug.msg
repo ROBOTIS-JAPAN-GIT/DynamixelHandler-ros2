@@ -1,4 +1,4 @@
-dynamixel_handler/DynamixelStatus status
-dynamixel_handler/DynamixelDebugElement current_ma
-dynamixel_handler/DynamixelDebugElement velocity_deg_s
-dynamixel_handler/DynamixelDebugElement position_deg
+DynamixelStatus status
+DynamixelDebugElement current_ma
+DynamixelDebugElement velocity_deg_s
+DynamixelDebugElement position_deg

@@ -8,8 +8,8 @@ note: ROS2のみ対応，ROS1 ver は[こちら](https://github.com/ROBOTIS-JAPA
 
 ## Features of this package
  - **Dynamixel制御に特化した最小単位のパッケージ**
-    - このパッケージが提供する **`dynamixel_handler_node`** は，サーボモータとの通信を担う．
-    - サーボの動作制御はユーザーが開発する **別の制御ノード**が行い，`dynamixel_handler_node`は通信の仲介を行うイメージ．
+    - このパッケージが提供する **`dynamixel_handler`** ノードは，サーボモータとの通信を担う．
+    - サーボの動作制御はユーザーが開発する **別の制御ノード**が行い，`dynamixel_handler`は通信の仲介を行うイメージ．
     - ユーザーはシリアル通信の通信プロトコルや，コントロールテーブルついて知る必要が(あまり)ない．
     - Dynamixelの各種情報や機能が[適切に分類](#各種情報の分類と-control-table-との対応)され，ほぼすべての情報・機能を利用することが可能
   
@@ -137,25 +137,25 @@ ros2 launch dynamixel_handler dynamixel_handler_launch.xml
 ```bash
 # 出力例
 # ... 略 ...
-[dynamixel_handler_node-1] 00000.00000: Initializing DynamixelHandler ..... 
-[dynamixel_handler_node-1] 00000.00000: Succeeded to open USB device [/dev/ttyUSB0] 
-[dynamixel_handler_node-1] 00000.00000:                     baudrate [57600]
-[dynamixel_handler_node-1] 00000.00000:                latency_timer [16]
-[dynamixel_handler_node-1] 00000.00000: Expected number of Dynamixel is not set. 
-[dynamixel_handler_node-1] 00000.00000: Free number of Dynamixel is allowed.
-[dynamixel_handler_node-1] 00000.00000:  Auto scanning Dynamixel (id range [0] to [30]) ...
-[dynamixel_handler_node-1] 00000.00000:    * P series servo id [1] is found 
-[dynamixel_handler_node-1] 00000.00000:    ID [1] is enabled torque 
-[dynamixel_handler_node-1] 00000.00000:    * X series servo id [6] is found 
-[dynamixel_handler_node-1] 00000.00000:    ID [6] is enabled torque 
-[dynamixel_handler_node-1] 00000.00000:    * X series servo id [7] is found 
-[dynamixel_handler_node-1] 00000.00000:    ID [7] is enabled torque 
-[dynamixel_handler_node-1] 00000.00000:  ... Finish scanning Dynamixel 
-[dynamixel_handler_node-1] 00000.00000: ..... DynamixelHandler is initialized 
-[dynamixel_handler_node-1] 00000.00000: Loop [0]: write=0.00ms read=11.72ms(p/f=100%/100%) 
-[dynamixel_handler_node-1] 00000.00000: Loop [300]: write=0.01ms read=5.55ms(p/f=100%/100%) 
-[dynamixel_handler_node-1] 00000.00000: Loop [600]: write=0.01ms read=5.47ms(p/f=100%/100%) 
-[dynamixel_handler_node-1] 00000.00000: Loop [900]: write=0.01ms read=5.30ms(p/f=100%/100%)
+[dynamixel_handler-1] 00000.00000: Initializing DynamixelHandler ..... 
+[dynamixel_handler-1] 00000.00000: Succeeded to open USB device [/dev/ttyUSB0] 
+[dynamixel_handler-1] 00000.00000:                     baudrate [57600]
+[dynamixel_handler-1] 00000.00000:                latency_timer [16]
+[dynamixel_handler-1] 00000.00000: Expected number of Dynamixel is not set. 
+[dynamixel_handler-1] 00000.00000: Free number of Dynamixel is allowed.
+[dynamixel_handler-1] 00000.00000:  Auto scanning Dynamixel (id range [0] to [30]) ...
+[dynamixel_handler-1] 00000.00000:    * P series servo id [1] is found 
+[dynamixel_handler-1] 00000.00000:    ID [1] is enabled torque 
+[dynamixel_handler-1] 00000.00000:    * X series servo id [6] is found 
+[dynamixel_handler-1] 00000.00000:    ID [6] is enabled torque 
+[dynamixel_handler-1] 00000.00000:    * X series servo id [7] is found 
+[dynamixel_handler-1] 00000.00000:    ID [7] is enabled torque 
+[dynamixel_handler-1] 00000.00000:  ... Finish scanning Dynamixel 
+[dynamixel_handler-1] 00000.00000: ..... DynamixelHandler is initialized 
+[dynamixel_handler-1] 00000.00000: Loop [0]: write=0.00ms read=11.72ms(p/f=100%/100%) 
+[dynamixel_handler-1] 00000.00000: Loop [300]: write=0.01ms read=5.55ms(p/f=100%/100%) 
+[dynamixel_handler-1] 00000.00000: Loop [600]: write=0.01ms read=5.47ms(p/f=100%/100%) 
+[dynamixel_handler-1] 00000.00000: Loop [900]: write=0.01ms read=5.30ms(p/f=100%/100%)
 ```
 
 連結したDynamixelが自動で探索され，見つかったDynamixelの初期設定が行われる．   

@@ -8,67 +8,18 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rosidl_default_generators REQUIRED) # 自作msgの作成のために必要
-find_package(std_msgs REQUIRED) # 自作msgのHeaderのために必要
+find_package(std_msgs REQUIRED)
+find_package(dynamixel_handler_msgs REQUIRED)
 
-# 以下の部分は自作msgの定義のために必要
-set(msg_files
-  "msg/DxlStates.msg"
-  "msg/DxlCommandsX.msg"
-  "msg/DxlCommandsP.msg"
-  "msg/DxlCommandsAll.msg"
-
-  "msg/DynamixelStatus.msg"
-  "msg/DynamixelPresent.msg"
-  "msg/DynamixelGoal.msg"
-  "msg/DynamixelGain.msg"
-  "msg/DynamixelLimit.msg"
-  "msg/DynamixelError.msg"
-  "msg/DynamixelExtra.msg"
-  "msg/DynamixelExtraDrivemode.msg"
-  "msg/DynamixelExtraShutdown.msg"
-  "msg/DynamixelExtraRestureconfig.msg"
-  "msg/DynamixelExtraMovingstatus.msg"
-  "msg/DynamixelExtraLed.msg"
-
-  "msg/DynamixelDebug.msg"
-  "msg/DynamixelDebugElement.msg"
-  "msg/DynamixelShortcut.msg"
-  
-  "msg/DynamixelControlXPwm.msg"
-  "msg/DynamixelControlXCurrent.msg"
-  "msg/DynamixelControlXVelocity.msg"
-  "msg/DynamixelControlXPosition.msg"
-  "msg/DynamixelControlXExtendedPosition.msg"
-  "msg/DynamixelControlXCurrentBasePosition.msg"
-  "msg/DynamixelControlPPwm.msg"
-  "msg/DynamixelControlPCurrent.msg"
-  "msg/DynamixelControlPVelocity.msg"
-  "msg/DynamixelControlPPosition.msg"
-  "msg/DynamixelControlPExtendedPosition.msg"
-
-  "msg/DxlExternalPort.msg"
-)
-set(srv_files
-
-)
-rosidl_generate_interfaces(${PROJECT_NAME}
-  ${msg_files}
-  ${srv_files}
-  DEPENDENCIES std_msgs
-)
-ament_export_dependencies(rosidl_default_runtime)
 
 # インクルードディレクトリの設定
 include_directories(
   include/mylib_dynamixel/src
 )
 
-# ===============================dynamixel_unify_baudrate_node===============================
-
-# =============================== dynamixel_unify_baudrate_node =========================
+# =============================== dynamixel_unify_baudrate =========================
 add_executable(
-  dynamixel_unify_baudrate_node 
+  dynamixel_unify_baudrate 
 	include/mylib_dynamixel/download/port_handler_linux_fix.cpp
 	include/mylib_dynamixel/download/port_handler_fix.cpp
 	include/mylib_dynamixel/src/dynamixel_communicator_main.cpp
@@ -77,37 +28,33 @@ add_executable(
 	src/sub_node/dynamixel_unify_baudrate.cpp
 )
 target_include_directories(
-  dynamixel_unify_baudrate_node PUBLIC
+  dynamixel_unify_baudrate PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
   )
 target_compile_features(
-  dynamixel_unify_baudrate_node 
+  dynamixel_unify_baudrate 
   PUBLIC c_std_99 cxx_std_17
 )
 
 ament_target_dependencies(
-	dynamixel_unify_baudrate_node
+	dynamixel_unify_baudrate
   rclcpp
   std_msgs
-  rosidl_default_runtime
+  dynamixel_handler_msgs
 )
 
 install(
-  TARGETS dynamixel_unify_baudrate_node
+  TARGETS dynamixel_unify_baudrate
   DESTINATION lib/${PROJECT_NAME}
   )
 
-# 以下の部分は同じPkg内でmsgを定義＆使用を行う場合にい必要な追記
-rosidl_get_typesupport_target(cpp_typesupport_target
-  ${PROJECT_NAME} rosidl_typesupport_cpp)
-target_link_libraries(dynamixel_unify_baudrate_node "${cpp_typesupport_target}")
 
-# ============================ dynamixel_handler_node ================================
+# ============================ dynamixel_handler ================================
 
 # 実行可能ファイルの名前を変更
 add_executable(
-  dynamixel_handler_node 
+  ${PROJECT_NAME} 
 	include/mylib_dynamixel/download/port_handler_linux_fix.cpp
 	include/mylib_dynamixel/download/port_handler_fix.cpp
 	include/mylib_dynamixel/src/dynamixel_communicator_main.cpp
@@ -123,31 +70,27 @@ add_executable(
 	src/main.cpp
 )
 target_include_directories(
-  dynamixel_handler_node PUBLIC
+  ${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
   )
 target_compile_features(
-  dynamixel_handler_node 
+  ${PROJECT_NAME} 
   PUBLIC c_std_99 cxx_std_17
 )
 
 ament_target_dependencies(
-	dynamixel_handler_node
+	${PROJECT_NAME}
   rclcpp
   std_msgs
-  rosidl_default_runtime
+  dynamixel_handler_msgs
 )
 
 install(
-  TARGETS dynamixel_handler_node
+  TARGETS ${PROJECT_NAME}
   DESTINATION lib/${PROJECT_NAME}
 )
 
-# 以下の部分は同じPkg内でmsgを定義＆使用を行う場合にい必要な追記
-rosidl_get_typesupport_target(cpp_typesupport_target
-  ${PROJECT_NAME} rosidl_typesupport_cpp)
-target_link_libraries(dynamixel_handler_node "${cpp_typesupport_target}")
 # ==================================================================================
 
 

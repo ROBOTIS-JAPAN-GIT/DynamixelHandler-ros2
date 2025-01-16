@@ -8,7 +8,7 @@
     <arg name="name_space" default=""/> <!-- config/{}.yaml内のnamespaceとそろえる必要あり -->
     <arg name="name_pkg" default="dynamixel_handler"/>
 
-    <node pkg="$(var name_pkg)" exec="dynamixel_handler_node" name="dyn_handler" namespace="$(var name_space)" output="screen">
+    <node pkg="$(var name_pkg)" exec="dynamixel_handler" name="dynamixel_handler" namespace="$(var name_space)" output="screen">
         <!-- 細かいパラメータの設定 -->
         <param from="$(find-pkg-share $(var name_pkg))/config/config_dynamixel_handler.yaml"/>
         <!-- <param from="$(find-pkg-share $(var name_pkg))/config/config_dynamixel_handler-fast.yaml"/> -->

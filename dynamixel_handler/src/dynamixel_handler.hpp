@@ -5,35 +5,35 @@
 
 #include "dynamixel_communicator.h"
 
-#include "dynamixel_handler/msg/dxl_states.hpp"
-#include "dynamixel_handler/msg/dxl_commands_x.hpp"
-#include "dynamixel_handler/msg/dxl_commands_p.hpp"
-#include "dynamixel_handler/msg/dxl_commands_all.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_states.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_commands_x.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_commands_p.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_commands_all.hpp"
 
-#include "dynamixel_handler/msg/dynamixel_status.hpp"
-#include "dynamixel_handler/msg/dynamixel_present.hpp"
-#include "dynamixel_handler/msg/dynamixel_goal.hpp"
-#include "dynamixel_handler/msg/dynamixel_gain.hpp"
-#include "dynamixel_handler/msg/dynamixel_error.hpp"
-#include "dynamixel_handler/msg/dynamixel_limit.hpp"
-#include "dynamixel_handler/msg/dynamixel_extra.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_status.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_present.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_goal.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_gain.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_error.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_limit.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_extra.hpp"
 
-#include "dynamixel_handler/msg/dynamixel_control_x_pwm.hpp"
-#include "dynamixel_handler/msg/dynamixel_control_x_current.hpp"
-#include "dynamixel_handler/msg/dynamixel_control_x_velocity.hpp"
-#include "dynamixel_handler/msg/dynamixel_control_x_position.hpp"
-#include "dynamixel_handler/msg/dynamixel_control_x_extended_position.hpp"
-#include "dynamixel_handler/msg/dynamixel_control_x_current_base_position.hpp"
-#include "dynamixel_handler/msg/dynamixel_control_p_pwm.hpp"
-#include "dynamixel_handler/msg/dynamixel_control_p_position.hpp"
-#include "dynamixel_handler/msg/dynamixel_control_p_velocity.hpp"
-#include "dynamixel_handler/msg/dynamixel_control_p_current.hpp"
-#include "dynamixel_handler/msg/dynamixel_control_p_extended_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_pwm.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_current.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_velocity.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_extended_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_current_base_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_p_pwm.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_p_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_p_velocity.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_p_current.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_p_extended_position.hpp"
 
-#include "dynamixel_handler/msg/dynamixel_debug.hpp"
-#include "dynamixel_handler/msg/dynamixel_shortcut.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_debug.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_shortcut.hpp"
 
-using namespace dynamixel_handler::msg;
+using namespace dynamixel_handler_msgs::msg;
 
 #include <string>
 using std::string;

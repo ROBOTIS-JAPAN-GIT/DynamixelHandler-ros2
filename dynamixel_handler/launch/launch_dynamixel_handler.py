@@ -16,7 +16,7 @@ def generate_launch_description():
 
     node1 = Node(
         package=pkg_name1,
-        executable='dynamixel_handler_node',
+        executable='dynamixel_handler',
         name='dxl_handler',
         namespace='',
         output='screen',

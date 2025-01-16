@@ -3,8 +3,8 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "dynamixel_handler/msg/dxl_external_port.hpp"
-using namespace dynamixel_handler::msg;
+#include "dynamixel_handler_msgs/msg/dxl_external_port.hpp"
+using namespace dynamixel_handler_msgs::msg;
 
 #include "../dynamixel_handler.hpp"
 
