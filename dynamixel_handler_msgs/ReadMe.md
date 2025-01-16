@@ -67,11 +67,11 @@
 ### 情報をSubscribe(read)する場合
 #### プログラムでの使用
 ```cpp
-#include "dynamixel_handler/msg/dxl_states.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_states.hpp"
 /// ...
 /// 略, 動くコードは example を参照のこと
 /// ...
-dynamixel_handler::msg::DxlStates::SharedPtr msg; //すべての状態が確認できる
+dynamixel_handler_msgs::msg::DxlStates::SharedPtr msg; //すべての状態が確認できる
 // subscribe した status の確認, 単に表示するだけ
 for (size_t i = 0; i < msg->status.id_list.size(); i++) {
    printf("servo [%d], torque %s, has %s, ping is %s, mode is %s\n", 
@@ -155,11 +155,11 @@ temperature_degc: [0.0, 0.0, 0.0, 0.0]
 
 #### プログラムでの使用
 ```cpp
-#include "dynamixel_handler/msg/dxl_commands_x.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_commands_x.hpp"
 /// ...
 /// 略, 動くコードは example を参照のこと
 /// ...
-dynamixel_handler::msg::DxlCommandsX cmd;
+dynamixel_handler_msgs::msg::DxlCommandsX cmd;
 
 // id = 1,2,3 のサーボを **torque_on**.
 cmd.satatus.set__id_list( {1,2,3} )
@@ -174,10 +174,10 @@ cmd.gain.position_d_gain_pulse.push_back(50.0);
 pub_dxl_cmd_->publish( cmd );
 // =======================================
 // より実践的には以下のように使う
-#include "dynamixel_handler/msg/dxl_commands_x.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_commands_x.hpp"
 #include <map>
 #include <tuple>
-dynamixel_handler::msg::DxlCommandsX cmd;
+dynamixel_handler_msgs::msg::DxlCommandsX cmd;
 std::map<uint8_t, std::tuple<float, float>> target_map = {
    {1, {50.0, 0.0}},
    {2, {100.0, 0.0}},
@@ -196,11 +196,11 @@ pub_dxl_cmd_->publish( cmd );
 
 #### コマンドラインでの使用
 ```bash
-$ ros2 topic pub /dynamixel/shortcut dynamixel_handler/msg/DynamixelShortcut \
+$ ros2 topic pub /dynamixel/shortcut dynamixel_handler_msgs/msg/DynamixelShortcut \
 "command: 'torque_on'
 id_list: [1,2,3,4]" -1
 
-$ ros2 topic pub /dynamixel/command/current_base_position_control dynamixel_handler/msg/DynamixelControlXCurrentPosition \
+$ ros2 topic pub /dynamixel/command/current_base_position_control dynamixel_handler_msgs/msg/DynamixelControlXCurrentPosition \
 "id_list: [1,2,3,4]
 current_ma: [0.0, 0.0, 0.0, 0.0]
 position_deg: [0.0, 0.0, 0.0, 0.0]
@@ -215,7 +215,7 @@ profile_acc_deg_ss: [0.0, 0.0, 0.0, 0.0]" -1
 
 ## Topic type detail
 
-### `dynamixel_handler::msg::DxlStates` type 
+### `dynamixel_handler_msgs::msg::DxlStates` type 
  `/dynamixel/states` topic　の型
 ```cpp
 builtin_interfaces/Time stamp
@@ -324,7 +324,7 @@ extra: # DynamixelExtra型, 未実装
    reboot: [] # 未実装 
 ```
 
-### `dynamixel_handler::msg::DxlCommandsX` type 
+### `dynamixel_handler_msgs::msg::DxlCommandsX` type 
 `/dynamixel/commands/x` topic の型．
 ```cpp
 dynamixel_handler/DynamixelControlXPwm                 pwm_control
@@ -435,7 +435,7 @@ extra: # DynamixelExtra型, 未実装
    reboot: [] # 未実装 
 ```
 
-### `dynamixel_handler::msg::DxlCommandsP` type
+### `dynamixel_handler_msgs::msg::DxlCommandsP` type
  `/dynamixel/commands/p` topic の型．
 ```cpp
 dynamixel_handler/DynamixelControlPPwm              pwm_control
@@ -449,7 +449,7 @@ dynamixel_handler/DynamixelLimit  limit
 dynamixel_handler/DynamixelExtra  extra
 ```
 
-### `dynamixel_handler::msg::DxlCommandsAll` type
+### `dynamixel_handler_msgs::msg::DxlCommandsAll` type
  `/dynamixel/commands/p` topic の型．
 ```cpp
 dynamixel_handler/DynamixelStatus status
@@ -481,7 +481,7 @@ dynamixel_handler/DynamixelExtra  extra
    ```
 各コマンドの内容はmsgの定数として定義されており，プログラム内から扱う場合，以下の様に記述できる．
    ```cpp
-   dynamixel_handler::msg::DynamixelShortcut msg;
+   dynamixel_handler_msgs::msg::DynamixelShortcut msg;
    msg.command = msg.TORQUE_ON; // typoはコンパイラが教えてくれる．
    // msg.command = "torque_on"; // もちろんこれもOKだが，typoのリスクがある．
    ```
@@ -649,7 +649,7 @@ Errorを読みだすためのトピック `/dynamixel/state/error` の型
 
 ### How to use
 ```cpp
-#include "dynamixel_handler/msg/dxl_external_port.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_external_port.hpp"
 // ID: 1 のサーボのポート1と2にはLEDが接続されている
 constexpr int ID_LIGHT = 1;
 constexpr int PORT_LIGHT1 = 1;
@@ -699,7 +699,7 @@ data: [1, 0, 0, 1, 1, 2000]
 
 ### Topic type detail
 
-#### `dynamixel_handler::msg::DxlExternalPort` type
+#### `dynamixel_handler_msgs::msg::DxlExternalPort` type
 外部ポートの設定を行うためのトピック `/dynamixel/external_port/write` と `/dynamixel/external_port/read` の型．
 ```yaml
 builtin_interfaces/Time stamp
