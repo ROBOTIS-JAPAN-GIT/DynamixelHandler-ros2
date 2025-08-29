@@ -31,7 +31,7 @@ static constexpr double res_gyro = 2000.0 / 32768.0;  // 2000dps
 DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(parent) {
 	ROS_INFO( " < Initializing IMU on OpenCR ...   > ");
 	
-	parent_.get_parameter_or("option/imu_opencr.id", id_imu_, 40u);
+	parent_.get_parameter_or("option/imu_opencr.opencr_id", id_imu_, 40u);
 	parent_.get_parameter_or("option/imu_opencr.frame_id", frame_id_, "base_link"s);
 	parent_.get_parameter_or("option/imu_opencr.pub_ratio", pub_ratio_, 10u);
 	parent_.get_parameter_or("option/imu_opencr.verbose/callback", verbose_callback_, false);
@@ -39,7 +39,7 @@ DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(paren
 	parent_.get_parameter_or("option/imu_opencr.verbose/read/raw", verbose_read_    , false);
 	parent_.get_parameter_or("option/imu_opencr.verbose/read/err", verbose_read_err_, false);
 
-	pub_imu_   = parent_.create_publisher<Imu>("dynamixel/imu", 4);
+	pub_imu_   = parent_.create_publisher<Imu>("dynamixel/imu/raw", 4);
 	sub_calib_ = parent_.create_subscription<Empty>("dynamixel/imu/calibration_gyro", 10, bind(&DynamixelHandler::ImuOpenCR::CallbackCalibGyro, this, _1));
 
 	ROS_INFO( " < ... IMU on OpenCR is initialized > ");
@@ -74,13 +74,22 @@ bool DynamixelHandler::ImuOpenCR::ReadImuData(uint8_t imu_id) {
 	};
 
 	auto result = dyn_comm_.Read(addr_imu_list, imu_id);
-	//* 通信エラーの表示
-	if (result.size() != addr_imu_list.size()) return false;
-	if (verbose_read_err_) {};
+	const bool is_timeout   = dyn_comm_.timeout_last_read();
+	const bool has_comm_err = dyn_comm_.comm_error_last_read();
+
+	//* 通信エラーの処理
+	if ( is_timeout || has_comm_err ) {
+		if (verbose_read_err_) ROS_WARN("OpenCR (id=[%d]) failed to read %s", imu_id, is_timeout ? " (time out)" : " (some kind packet error)");
+		return false;
+	}
 
 	//* resultの内容を確認
 	if (verbose_read_) {
-		ROS_INFO("IMU (id=%d) is read", imu_id);
+		map<uint8_t, vector<int64_t>> id_data_map;
+		id_data_map[imu_id] = result;
+		char header[99]; sprintf(header, "OpenCR (id=[%d]) id read", imu_id);
+		auto ss = control_table_layout(2, id_data_map, addr_imu_list, string(header));
+		ROS_INFO_STREAM(ss);
 	};
 
 	//* 読み取ったデータを反映
