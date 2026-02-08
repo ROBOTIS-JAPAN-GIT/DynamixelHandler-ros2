@@ -62,8 +62,13 @@ add_executable(
   
 	src/dynamixel_handler_ros_interface_sub.cpp
 	src/dynamixel_handler_ros_interface_pub.cpp
+	src/dynamixel_handler_ros_setup_common.cpp
+	src/dynamixel_handler_ros_setup_x.cpp
+	src/dynamixel_handler_ros_setup_p.cpp
+	src/dynamixel_handler_ros_setup_pro.cpp
 	src/dynamixel_handler_dyn_interface_loop.cpp
 	src/dynamixel_handler_dyn_interface_once.cpp
+	src/dynamixel_handler.cpp
 
   src/optional_function/external_port.cpp
 

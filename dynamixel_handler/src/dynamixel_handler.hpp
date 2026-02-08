@@ -108,6 +108,10 @@ class DynamixelHandler : public rclcpp::Node {
         void CallbackCmdsP               (const DxlCommandsP::SharedPtr msg);
         void CallbackCmdsPro             (const DxlCommandsPro::SharedPtr msg);
         void CallbackCmdsAll             (const DxlCommandsAll::SharedPtr msg);
+        void SetupRosInterfaces(bool no_use_command_line);
+        void SetupRosInterfacesX();
+        void SetupRosInterfacesP();
+        void SetupRosInterfacesPro();
 
         //* ROS publisher subscriber instance
         rclcpp::Publisher<DynamixelStatus>::SharedPtr  pub_status_;
