@@ -1,24 +1,37 @@
 #include "dynamixel_handler.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_commands_all.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_commands_p.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_commands_pro.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_commands_x.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_states.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_debug.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_error.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_gain.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_goal.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_limit.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_present.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_shortcut.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_status.hpp"
 
 void DynamixelHandler::SetupRosInterfaces(bool no_use_command_line) {
     // 他のノードとの通信用
     sub_dxl_all_cmds_ = create_subscription<DxlCommandsAll>(
         "dynamixel/commands/all", 10,
-        [this](const DxlCommandsAll::SharedPtr msg) { CallbackCmdsAll(msg); });
+        [this](std::shared_ptr<DxlCommandsAll> msg) { CallbackCmdsAll(msg); });
     if (use_["x"]) {
         sub_dxl_x_cmds_ = create_subscription<DxlCommandsX>(
             "dynamixel/commands/x", 10,
-            [this](const DxlCommandsX::SharedPtr msg) { CallbackCmdsX(msg); });
+            [this](std::shared_ptr<DxlCommandsX> msg) { CallbackCmdsX(msg); });
     }
     if (use_["p"]) {
         sub_dxl_p_cmds_ = create_subscription<DxlCommandsP>(
             "dynamixel/commands/p", 10,
-            [this](const DxlCommandsP::SharedPtr msg) { CallbackCmdsP(msg); });
+            [this](std::shared_ptr<DxlCommandsP> msg) { CallbackCmdsP(msg); });
     }
     if (use_["pro"]) {
         sub_dxl_pro_cmds_ = create_subscription<DxlCommandsPro>(
             "dynamixel/commands/pro", 10,
-            [this](const DxlCommandsPro::SharedPtr msg) { CallbackCmdsPro(msg); });
+            [this](std::shared_ptr<DxlCommandsPro> msg) { CallbackCmdsPro(msg); });
     }
     pub_dxl_states_ = create_publisher<DxlStates>("dynamixel/states", 4);
 

@@ -1,4 +1,8 @@
 #include "dynamixel_handler.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_pro_current.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_pro_extended_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_pro_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_pro_velocity.hpp"
 
 void DynamixelHandler::SetupRosInterfacesPro() {
     sub_ctrl_pro_cur_ = create_subscription<DynamixelControlProCurrent>(

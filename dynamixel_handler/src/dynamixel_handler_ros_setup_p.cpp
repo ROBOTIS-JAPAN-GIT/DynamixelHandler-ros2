@@ -1,4 +1,9 @@
 #include "dynamixel_handler.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_p_current.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_p_extended_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_p_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_p_pwm.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_p_velocity.hpp"
 
 void DynamixelHandler::SetupRosInterfacesP() {
     sub_ctrl_p_pwm_ = create_subscription<DynamixelControlPPwm>(

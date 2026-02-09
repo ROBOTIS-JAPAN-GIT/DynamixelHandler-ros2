@@ -1,5 +1,13 @@
 #include "dynamixel_handler.hpp"
 #include "optional_function/external_port.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_states.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_debug.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_error.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_gain.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_goal.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_limit.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_present.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_status.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "myUtils/logging_like_ros1.hpp"
 #include "myUtils/make_iterator_convenient.hpp"
@@ -7,6 +15,11 @@
 using std::bind;
 using std::placeholders::_1;
 using namespace std::string_literals;
+
+template <typename MsgT>
+static void publish_if(const rclcpp::PublisherBase::SharedPtr& pub, const MsgT& msg) {
+    if (pub) std::static_pointer_cast<rclcpp::Publisher<MsgT>>(pub)->publish(msg);
+}
 
 DynamixelHandler::DynamixelHandler() : Node("dynamixel_handler", rclcpp::NodeOptions()
                                                                   .allow_undeclared_parameters(true)
@@ -218,7 +231,7 @@ void DynamixelHandler::MainLoop(){
     if ( is_any_read ) { 
         n_any_read++;
         BroadcastDebug();
-        pub_dxl_states_->publish(msg);
+        publish_if(pub_dxl_states_, msg);
     }
 /* 処理時間時間の計測 */ t_read += duration_cast<microseconds>(system_clock::now()-s_read).count() / 1000.0;
 /* 処理時間時間の計測 */ t_total += duration_cast<microseconds>(system_clock::now()-s_total).count() / 1000.0;
@@ -241,4 +254,3 @@ DynamixelHandler::~DynamixelHandler(){
     StopDynamixels(id_set_);
     ROS_INFO( "..... DynamixelHandler is terminated");
 }
-

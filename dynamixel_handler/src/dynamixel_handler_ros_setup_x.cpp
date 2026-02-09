@@ -1,4 +1,10 @@
 #include "dynamixel_handler.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_current.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_current_base_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_extended_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_pwm.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_velocity.hpp"
 
 void DynamixelHandler::SetupRosInterfacesX() {
     sub_ctrl_x_pwm_ = create_subscription<DynamixelControlXPwm>(
