@@ -6,46 +6,44 @@
 #include "dynamixel_communicator.h"
 #include <memory>
 
-namespace dynamixel_handler_msgs
-{
-namespace msg
-{
-#define DYNAMIXEL_MSG_FWD(msg_name) \
-  template<class ContainerAllocator> struct msg_name##_; \
-  using msg_name = msg_name##_<std::allocator<void>>
+namespace dynamixel_handler_msgs {
+    namespace msg {
+        #define DYNAMIXEL_MSG_FWD(msg_name) \
+        template<class ContainerAllocator> struct msg_name##_; \
+        using msg_name = msg_name##_<std::allocator<void>>
 
-DYNAMIXEL_MSG_FWD(DxlStates);
-DYNAMIXEL_MSG_FWD(DxlCommandsX);
-DYNAMIXEL_MSG_FWD(DxlCommandsP);
-DYNAMIXEL_MSG_FWD(DxlCommandsPro);
-DYNAMIXEL_MSG_FWD(DxlCommandsAll);
-DYNAMIXEL_MSG_FWD(DynamixelStatus);
-DYNAMIXEL_MSG_FWD(DynamixelPresent);
-DYNAMIXEL_MSG_FWD(DynamixelGoal);
-DYNAMIXEL_MSG_FWD(DynamixelGain);
-DYNAMIXEL_MSG_FWD(DynamixelError);
-DYNAMIXEL_MSG_FWD(DynamixelLimit);
-DYNAMIXEL_MSG_FWD(DynamixelExtra);
-DYNAMIXEL_MSG_FWD(DynamixelControlXPwm);
-DYNAMIXEL_MSG_FWD(DynamixelControlXCurrent);
-DYNAMIXEL_MSG_FWD(DynamixelControlXVelocity);
-DYNAMIXEL_MSG_FWD(DynamixelControlXPosition);
-DYNAMIXEL_MSG_FWD(DynamixelControlXExtendedPosition);
-DYNAMIXEL_MSG_FWD(DynamixelControlXCurrentBasePosition);
-DYNAMIXEL_MSG_FWD(DynamixelControlPPwm);
-DYNAMIXEL_MSG_FWD(DynamixelControlPPosition);
-DYNAMIXEL_MSG_FWD(DynamixelControlPVelocity);
-DYNAMIXEL_MSG_FWD(DynamixelControlPCurrent);
-DYNAMIXEL_MSG_FWD(DynamixelControlPExtendedPosition);
-DYNAMIXEL_MSG_FWD(DynamixelControlProPosition);
-DYNAMIXEL_MSG_FWD(DynamixelControlProVelocity);
-DYNAMIXEL_MSG_FWD(DynamixelControlProCurrent);
-DYNAMIXEL_MSG_FWD(DynamixelControlProExtendedPosition);
-DYNAMIXEL_MSG_FWD(DynamixelDebug);
-DYNAMIXEL_MSG_FWD(DynamixelShortcut);
+        DYNAMIXEL_MSG_FWD(DxlStates);
+        DYNAMIXEL_MSG_FWD(DxlCommandsX);
+        DYNAMIXEL_MSG_FWD(DxlCommandsP);
+        DYNAMIXEL_MSG_FWD(DxlCommandsPro);
+        DYNAMIXEL_MSG_FWD(DxlCommandsAll);
+        DYNAMIXEL_MSG_FWD(DynamixelStatus);
+        DYNAMIXEL_MSG_FWD(DynamixelPresent);
+        DYNAMIXEL_MSG_FWD(DynamixelGoal);
+        DYNAMIXEL_MSG_FWD(DynamixelGain);
+        DYNAMIXEL_MSG_FWD(DynamixelError);
+        DYNAMIXEL_MSG_FWD(DynamixelLimit);
+        DYNAMIXEL_MSG_FWD(DynamixelExtra);
+        DYNAMIXEL_MSG_FWD(DynamixelControlXPwm);
+        DYNAMIXEL_MSG_FWD(DynamixelControlXCurrent);
+        DYNAMIXEL_MSG_FWD(DynamixelControlXVelocity);
+        DYNAMIXEL_MSG_FWD(DynamixelControlXPosition);
+        DYNAMIXEL_MSG_FWD(DynamixelControlXExtendedPosition);
+        DYNAMIXEL_MSG_FWD(DynamixelControlXCurrentBasePosition);
+        DYNAMIXEL_MSG_FWD(DynamixelControlPPwm);
+        DYNAMIXEL_MSG_FWD(DynamixelControlPPosition);
+        DYNAMIXEL_MSG_FWD(DynamixelControlPVelocity);
+        DYNAMIXEL_MSG_FWD(DynamixelControlPCurrent);
+        DYNAMIXEL_MSG_FWD(DynamixelControlPExtendedPosition);
+        DYNAMIXEL_MSG_FWD(DynamixelControlProPosition);
+        DYNAMIXEL_MSG_FWD(DynamixelControlProVelocity);
+        DYNAMIXEL_MSG_FWD(DynamixelControlProCurrent);
+        DYNAMIXEL_MSG_FWD(DynamixelControlProExtendedPosition);
+        DYNAMIXEL_MSG_FWD(DynamixelDebug);
+        DYNAMIXEL_MSG_FWD(DynamixelShortcut);
 
-#undef DYNAMIXEL_MSG_FWD
-}  // namespace msg
+        #undef DYNAMIXEL_MSG_FWD
+    }  // namespace msg
 }  // namespace dynamixel_handler_msgs
 
 using namespace dynamixel_handler_msgs::msg;
@@ -119,9 +117,9 @@ class DynamixelHandler : public rclcpp::Node {
         void CallbackCmdsPro             (std::shared_ptr<DxlCommandsPro> msg);
         void CallbackCmdsAll             (std::shared_ptr<DxlCommandsAll> msg);
         void SetupRosInterfaces(bool no_use_command_line);
-        void SetupRosInterfacesX();
-        void SetupRosInterfacesP();
-        void SetupRosInterfacesPro();
+        void SetupRosInterfacesX(bool no_use_command_line);
+        void SetupRosInterfacesP(bool no_use_command_line);
+        void SetupRosInterfacesPro(bool no_use_command_line);
 
         //* ROS publisher subscriber instance
         rclcpp::PublisherBase::SharedPtr  pub_status_;
