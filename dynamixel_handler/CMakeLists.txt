@@ -11,43 +11,66 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(dynamixel_handler_msgs REQUIRED)
 
+# Optional utility executable. OFF by default to reduce main package build cost.
+option(BUILD_DYNAMIXEL_UNIFY_BAUDRATE "Build dynamixel_unify_baudrate executable" OFF)
+option(ENABLE_DYNAMIXEL_PCH "Enable precompiled header for dynamixel_handler target" ON)
 
-# インクルードディレクトリの設定
-include_directories(
-  include/mylib_dynamixel/src
-)
-
-# =============================== dynamixel_unify_baudrate =========================
-add_executable(
-  dynamixel_unify_baudrate 
-	include/mylib_dynamixel/download/port_handler_linux_fix.cpp
-	include/mylib_dynamixel/download/port_handler_fix.cpp
-	include/mylib_dynamixel/src/dynamixel_communicator_main.cpp
-	include/mylib_dynamixel/src/dynamixel_communicator_retry.cpp
-  
-	src/sub_node/dynamixel_unify_baudrate.cpp
+# =============================== dynamixel_communicator =========================
+add_library(
+  dynamixel_communicator STATIC
+  include/mylib_dynamixel/download/port_handler_linux_fix.cpp
+  include/mylib_dynamixel/download/port_handler_fix.cpp
+  include/mylib_dynamixel/src/dynamixel_parameters.cpp
+  include/mylib_dynamixel/src/dynamixel_communicator_main.cpp
+  include/mylib_dynamixel/src/dynamixel_communicator_retry.cpp
 )
 target_include_directories(
-  dynamixel_unify_baudrate PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-  )
+  dynamixel_communicator PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/mylib_dynamixel/src>
+)
 target_compile_features(
-  dynamixel_unify_baudrate 
-  PUBLIC c_std_99 cxx_std_17
+  dynamixel_communicator PUBLIC c_std_99 cxx_std_17
 )
-
-ament_target_dependencies(
-	dynamixel_unify_baudrate
-  rclcpp
-  std_msgs
-  dynamixel_handler_msgs
-)
-
-install(
-  TARGETS dynamixel_unify_baudrate
-  DESTINATION lib/${PROJECT_NAME}
+if(ENABLE_DYNAMIXEL_PCH AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
+  target_precompile_headers(
+    dynamixel_communicator
+    PRIVATE
+      "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/include/mylib_dynamixel/src/dynamixel_communicator.h>"
   )
+endif()
+
+# =============================== dynamixel_unify_baudrate =========================
+if(BUILD_DYNAMIXEL_UNIFY_BAUDRATE)
+  add_executable(
+    dynamixel_unify_baudrate
+    src/sub_node/dynamixel_unify_baudrate.cpp
+  )
+  target_include_directories(
+    dynamixel_unify_baudrate PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_compile_features(
+    dynamixel_unify_baudrate
+    PUBLIC c_std_99 cxx_std_17
+  )
+
+  ament_target_dependencies(
+    dynamixel_unify_baudrate
+    rclcpp
+    std_msgs
+    dynamixel_handler_msgs
+  )
+  target_link_libraries(
+    dynamixel_unify_baudrate
+    dynamixel_communicator
+  )
+
+  install(
+    TARGETS dynamixel_unify_baudrate
+    DESTINATION lib/${PROJECT_NAME}
+  )
+endif()
 
 
 # ============================ dynamixel_handler ================================
@@ -55,11 +78,6 @@ install(
 # 実行可能ファイルの名前を変更
 add_executable(
   ${PROJECT_NAME} 
-	include/mylib_dynamixel/download/port_handler_linux_fix.cpp
-	include/mylib_dynamixel/download/port_handler_fix.cpp
-	include/mylib_dynamixel/src/dynamixel_communicator_main.cpp
-	include/mylib_dynamixel/src/dynamixel_communicator_retry.cpp
-  
 	src/dynamixel_handler_ros_interface_sub.cpp
 	src/dynamixel_handler_ros_interface_pub.cpp
 	src/dynamixel_handler_ros_setup_common.cpp
@@ -83,12 +101,23 @@ target_compile_features(
   ${PROJECT_NAME} 
   PUBLIC c_std_99 cxx_std_17
 )
+if(ENABLE_DYNAMIXEL_PCH AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
+  target_precompile_headers(
+    ${PROJECT_NAME}
+    PRIVATE
+      "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/src/dynamixel_handler.hpp>"
+  )
+endif()
 
 ament_target_dependencies(
-	${PROJECT_NAME}
+		${PROJECT_NAME}
   rclcpp
   std_msgs
   dynamixel_handler_msgs
+)
+target_link_libraries(
+  ${PROJECT_NAME}
+  dynamixel_communicator
 )
 
 install(

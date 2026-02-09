@@ -9,6 +9,8 @@ vector<uint8_t> DynamixelHandler::id_filter(const Container& id_set, series_t se
     for (auto&& id : id_set) if ( is_in( id, id_set_ ) && series_[id] == series) id_list.push_back(id);
     return id_list;
 }
+template vector<uint8_t> DynamixelHandler::id_filter<set<uint8_t>>(const set<uint8_t>& id_set, series_t series);
+template vector<uint8_t> DynamixelHandler::id_filter<unordered_set<uint8_t>>(const unordered_set<uint8_t>& id_set, series_t series);
 
 void DynamixelHandler::SyncWrite_log(
     const DynamixelAddress& addr, const vector<id_t>& id_list, const vector<int64_t>& data_list, bool verbose
