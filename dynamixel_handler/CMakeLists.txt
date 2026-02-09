@@ -18,15 +18,15 @@ option(ENABLE_DYNAMIXEL_PCH "Enable precompiled header for dynamixel_handler tar
 # =============================== dynamixel_communicator =========================
 add_library(
   dynamixel_communicator STATIC
-  include/mylib_dynamixel/download/port_handler_linux_fix.cpp
-  include/mylib_dynamixel/download/port_handler_fix.cpp
-  include/mylib_dynamixel/src/dynamixel_parameters.cpp
-  include/mylib_dynamixel/src/dynamixel_communicator_main.cpp
-  include/mylib_dynamixel/src/dynamixel_communicator_retry.cpp
+  src/internal/mylib_dynamixel/download/port_handler_linux_fix.cpp
+  src/internal/mylib_dynamixel/download/port_handler_fix.cpp
+  src/internal/mylib_dynamixel/src/dynamixel_parameters.cpp
+  src/internal/mylib_dynamixel/src/dynamixel_communicator_main.cpp
+  src/internal/mylib_dynamixel/src/dynamixel_communicator_retry.cpp
 )
 target_include_directories(
   dynamixel_communicator PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/mylib_dynamixel/src>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/internal/mylib_dynamixel/src>
 )
 target_compile_features(
   dynamixel_communicator PUBLIC c_std_99 cxx_std_17
@@ -35,7 +35,7 @@ if(ENABLE_DYNAMIXEL_PCH AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
   target_precompile_headers(
     dynamixel_communicator
     PRIVATE
-      "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/include/mylib_dynamixel/src/dynamixel_communicator.h>"
+      "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/src/internal/mylib_dynamixel/src/dynamixel_communicator.h>"
   )
 endif()
 
@@ -93,10 +93,9 @@ add_executable(
 	src/main.cpp
 )
 target_include_directories(
-  ${PROJECT_NAME} PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-  )
+  ${PROJECT_NAME} PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
+)
 target_compile_features(
   ${PROJECT_NAME} 
   PUBLIC c_std_99 cxx_std_17

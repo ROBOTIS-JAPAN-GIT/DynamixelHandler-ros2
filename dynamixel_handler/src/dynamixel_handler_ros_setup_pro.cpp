@@ -4,7 +4,7 @@
 #include "dynamixel_handler_msgs/msg/dynamixel_control_pro_extended_position.hpp"
 #include "dynamixel_handler_msgs/msg/dynamixel_control_pro_position.hpp"
 #include "dynamixel_handler_msgs/msg/dynamixel_control_pro_velocity.hpp"
-#include "dynamixel_handler_ros_setup_generic_subscription.hpp"
+#include "myUtils/generic_subscription_helper.hpp"
 
 void DynamixelHandler::SetupRosInterfacesPro(bool no_use_command_line) {
     sub_dxl_pro_cmds_ = create_subscription<DxlCommandsPro>(

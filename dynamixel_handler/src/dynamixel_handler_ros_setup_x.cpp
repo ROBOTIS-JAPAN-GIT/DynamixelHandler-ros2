@@ -6,7 +6,7 @@
 #include "dynamixel_handler_msgs/msg/dynamixel_control_x_position.hpp"
 #include "dynamixel_handler_msgs/msg/dynamixel_control_x_pwm.hpp"
 #include "dynamixel_handler_msgs/msg/dynamixel_control_x_velocity.hpp"
-#include "dynamixel_handler_ros_setup_generic_subscription.hpp"
+#include "myUtils/generic_subscription_helper.hpp"
 
 void DynamixelHandler::SetupRosInterfacesX(bool no_use_command_line) {
     sub_dxl_x_cmds_ = create_subscription<DxlCommandsX>(

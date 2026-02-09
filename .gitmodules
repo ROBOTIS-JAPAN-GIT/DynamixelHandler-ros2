@@ -1,3 +1,3 @@
-[submodule "include/mylib_dynamixel"]
-	path = dynamixel_handler/include/mylib_dynamixel
+[submodule "src/internal/mylib_dynamixel"]
+	path = dynamixel_handler/src/internal/mylib_dynamixel
 	url = https://github.com/SHINOBI-organization/lib_dynamixel.git
