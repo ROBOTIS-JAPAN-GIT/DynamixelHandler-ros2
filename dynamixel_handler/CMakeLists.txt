@@ -5,14 +5,20 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# Default to testing OFF unless explicitly provided by the caller.
+if(NOT DEFINED BUILD_TESTING)
+  set(BUILD_TESTING OFF CACHE BOOL "Build tests and linters")
+endif()
+
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(dynamixel_handler_msgs REQUIRED)
 
-# Optional utility executable. OFF by default to reduce main package build cost.
-option(BUILD_DYNAMIXEL_UNIFY_BAUDRATE "Build dynamixel_unify_baudrate executable" OFF)
+# Optional utility executable. ON by default for convenience.
+# Set this to OFF when prioritizing shorter local build time.
+option(BUILD_DYNAMIXEL_UNIFY_BAUDRATE "Build dynamixel_unify_baudrate executable" ON)
 option(ENABLE_DYNAMIXEL_PCH "Enable precompiled header for dynamixel_handler target" ON)
 
 # =============================== dynamixel_communicator =========================
@@ -80,10 +86,8 @@ add_executable(
   ${PROJECT_NAME} 
 	src/dynamixel_handler_ros_interface_sub.cpp
 	src/dynamixel_handler_ros_interface_pub.cpp
-	src/dynamixel_handler_ros_setup_common.cpp
-	src/dynamixel_handler_ros_setup_x.cpp
-	src/dynamixel_handler_ros_setup_p.cpp
-	src/dynamixel_handler_ros_setup_pro.cpp
+	src/dynamixel_handler_ros_setup_by_program.cpp
+	src/dynamixel_handler_ros_setup_by_cli.cpp
 	src/dynamixel_handler_dyn_interface_loop.cpp
 	src/dynamixel_handler_dyn_interface_once.cpp
 	src/dynamixel_handler.cpp

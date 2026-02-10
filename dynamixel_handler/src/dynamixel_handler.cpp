@@ -27,7 +27,6 @@ DynamixelHandler::DynamixelHandler() : Node("dynamixel_handler", rclcpp::NodeOpt
     ROS_INFO( "Initializing DynamixelHandler .....");
     // 開発用
     bool is_debug; get_parameter_or("debug", is_debug, false);
-    bool no_use_command_line; get_parameter_or("no_use_command_line", no_use_command_line, false);
     // ダミーモータのIDリストを取得, 0未満，255以上のIDを排除する
     vector<int64_t> dummy_id_list; this->get_parameter("init/dummy_servo_list", dummy_id_list); //int64_t で受けないといけない．
     dummy_id_list.erase(std::remove_if(dummy_id_list.begin(), dummy_id_list.end(), [](int64_t id){ return id<0 || id>=255; }), dummy_id_list.end());
@@ -135,7 +134,10 @@ DynamixelHandler::DynamixelHandler() : Node("dynamixel_handler", rclcpp::NodeOpt
     this->get_parameter_or("verbose/read_hardware_error", verbose_["r_hwerr" ], false);
     this->get_parameter_or("no_response_id_auto_remove_count", auto_remove_count_   , 0u);
 
-    SetupRosInterfaces(no_use_command_line);
+    bool no_use_command_line; get_parameter_or("no_use_command_line", no_use_command_line, false);
+
+                                SetupRosInterfaces_byProgram();
+    if ( !no_use_command_line ) SetupRosInterfaces_byCLI();
 
     BroadcastState_Status();
     BroadcastState_Limit();
