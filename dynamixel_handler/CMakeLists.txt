@@ -5,21 +5,12 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Default to testing OFF unless explicitly provided by the caller.
-if(NOT DEFINED BUILD_TESTING)
-  set(BUILD_TESTING OFF CACHE BOOL "Build tests and linters")
-endif()
-
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
 find_package(dynamixel_handler_msgs REQUIRED)
-
-# Optional utility executable. ON by default for convenience.
-# Set this to OFF when prioritizing shorter local build time.
-option(BUILD_DYNAMIXEL_UNIFY_BAUDRATE "Build dynamixel_unify_baudrate executable" ON)
-option(ENABLE_DYNAMIXEL_PCH "Enable precompiled header for dynamixel_handler target" ON)
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+find_package(pybind11 CONFIG REQUIRED)
 
 # =============================== dynamixel_communicator =========================
 add_library(
@@ -35,48 +26,31 @@ target_include_directories(
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/internal/mylib_dynamixel/src>
 )
 target_compile_features(
-  dynamixel_communicator PUBLIC c_std_99 cxx_std_17
+  dynamixel_communicator PUBLIC cxx_std_17
 )
-if(ENABLE_DYNAMIXEL_PCH AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
-  target_precompile_headers(
-    dynamixel_communicator
-    PRIVATE
-      "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/src/internal/mylib_dynamixel/src/dynamixel_communicator.h>"
-  )
-endif()
+set_target_properties(dynamixel_communicator PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # =============================== dynamixel_unify_baudrate =========================
-if(BUILD_DYNAMIXEL_UNIFY_BAUDRATE)
-  add_executable(
-    dynamixel_unify_baudrate
-    src/sub_node/dynamixel_unify_baudrate.cpp
-  )
-  target_include_directories(
-    dynamixel_unify_baudrate PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-  )
-  target_compile_features(
-    dynamixel_unify_baudrate
-    PUBLIC c_std_99 cxx_std_17
-  )
-
-  ament_target_dependencies(
-    dynamixel_unify_baudrate
-    rclcpp
-    std_msgs
-    dynamixel_handler_msgs
-  )
-  target_link_libraries(
-    dynamixel_unify_baudrate
+add_library(_mylib_dynamixel MODULE src/internal/mylib_dynamixel/bindings/python/dynamixel_communicator_pybind.cpp)
+set_target_properties(_mylib_dynamixel PROPERTIES PREFIX "" OUTPUT_NAME "_mylib_dynamixel")
+target_link_libraries(
+  _mylib_dynamixel
+  PRIVATE
     dynamixel_communicator
-  )
+    pybind11::module
+    Python3::Python
+)
 
-  install(
-    TARGETS dynamixel_unify_baudrate
-    DESTINATION lib/${PROJECT_NAME}
-  )
-endif()
+install(
+  TARGETS _mylib_dynamixel
+  LIBRARY DESTINATION lib/${PROJECT_NAME}
+)
+
+install(
+  PROGRAMS src/sub_node/dynamixel_unify_baudrate.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME dynamixel_unify_baudrate
+)
 
 
 # ============================ dynamixel_handler ================================
@@ -102,20 +76,12 @@ target_include_directories(
 )
 target_compile_features(
   ${PROJECT_NAME} 
-  PUBLIC c_std_99 cxx_std_17
+  PUBLIC cxx_std_17
 )
-if(ENABLE_DYNAMIXEL_PCH AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
-  target_precompile_headers(
-    ${PROJECT_NAME}
-    PRIVATE
-      "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/src/dynamixel_handler.hpp>"
-  )
-endif()
 
 ament_target_dependencies(
 		${PROJECT_NAME}
   rclcpp
-  std_msgs
   dynamixel_handler_msgs
 )
 target_link_libraries(
@@ -136,17 +102,5 @@ install(DIRECTORY
   config
   DESTINATION share/${PROJECT_NAME}
 )
-
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # comment the line when a copyright and license is added to all source files
-  set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # comment the line when this package is in a git repo and when
-  # a copyright and license is added to all source files
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
-endif()
 
 ament_package()
