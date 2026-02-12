@@ -36,8 +36,8 @@ DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(paren
 	parent_.get_parameter_or("option/imu_opencr.pub_ratio", pub_ratio_, 10u);
 	parent_.get_parameter_or("option/imu_opencr.verbose/callback", verbose_callback_, false);
 	parent_.get_parameter_or("option/imu_opencr.verbose/write"   , verbose_write_   , false);
-	parent_.get_parameter_or("option/imu_opencr.verbose/read/raw", verbose_read_    , false);
-	parent_.get_parameter_or("option/imu_opencr.verbose/read/err", verbose_read_err_, false);
+	parent_.get_parameter_or("option/imu_opencr.verbose/read.raw", verbose_read_    , false);
+	parent_.get_parameter_or("option/imu_opencr.verbose/read.err", verbose_read_err_, false);
 
 	pub_imu_   = parent_.create_publisher<Imu>("dynamixel/imu/raw", 4);
 	sub_calib_ = parent_.create_subscription<Empty>("dynamixel/imu/calibration_gyro", 10, bind(&DynamixelHandler::ImuOpenCR::CallbackCalibGyro, this, _1));

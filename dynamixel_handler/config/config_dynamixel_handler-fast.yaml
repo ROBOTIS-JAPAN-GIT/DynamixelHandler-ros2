@@ -51,6 +51,12 @@
             verbose/callback: false
             verbose/write:    false
             verbose/read:     {raw: false, err: false}
+        option/imu_opencr:
+            use: false
+            pub_ratio: 2
+            verbose/callback: false
+            verbose/write: false
+            verbose/read: {raw: false, err: false}
     # デバッグ用
         max_log_width: 6
         verbose/callback: false
