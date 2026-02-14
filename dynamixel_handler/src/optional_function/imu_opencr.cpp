@@ -2,6 +2,8 @@
 
 #include "myUtils/formatting_output.hpp"
 #include "myUtils/make_iterator_convenient.hpp"
+#include "rclcpp/serialization.hpp"
+#include "rclcpp/serialized_message.hpp"
 
 using namespace std::string_literals;
 
@@ -37,20 +39,44 @@ float int32_bits_to_float(int32_t data) {
 }
 
 DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(parent) {
-	ROS_INFO( " < Initializing IMU on OpenCR ...   > ");
+	ROS_INFO( " < Initializing IMU on OpenCR .............. > ");
 	
-	parent_.get_parameter_or("option/imu_opencr.opencr_id", id_imu_, 40u);
+	id_imu_ = static_cast<uint8_t>(parent_.get_parameter_or("option/imu_opencr.opencr_id", 40));
+	model_number_ = parent_.get_parameter_or("option/imu_opencr.model_number", int64_t(0));
 	parent_.get_parameter_or("option/imu_opencr.frame_id", frame_id_, "base_link"s);
 	parent_.get_parameter_or("option/imu_opencr.pub_ratio", pub_ratio_, 10u);
 	parent_.get_parameter_or("option/imu_opencr.verbose/callback", verbose_callback_, false);
 	parent_.get_parameter_or("option/imu_opencr.verbose/write"   , verbose_write_   , false);
 	parent_.get_parameter_or("option/imu_opencr.verbose/read.raw", verbose_read_    , false);
 	parent_.get_parameter_or("option/imu_opencr.verbose/read.err", verbose_read_err_, false);
+	static auto& dyn_comm_ = parent_.dyn_comm_;
 
-	pub_imu_   = parent_.create_publisher<Imu>("dynamixel/imu/raw", 4);
-	sub_calib_ = parent_.create_subscription<Empty>("dynamixel/imu/calibration_gyro", 10, bind(&DynamixelHandler::ImuOpenCR::CallbackCalibGyro, this, _1));
+	if ( !dyn_comm_.tryPing(id_imu_) ) {
+		ROS_INFO( "  * OpenCR IMU ID [%d] is not found", id_imu_);
+		ROS_WARN( " < ... IMU on OpenCR is failed to initialize > ");
+		return;
+	}
+	auto oepncr_num = dyn_comm_.tryRead(AddrCommon::model_number, id_imu_);
+	if ( oepncr_num != model_number_ ) {
+		ROS_INFO("  * OpenCR IMU ID [%d] model_number [%d] is ignored (expected [%d])", id_imu_, (int)oepncr_num, (int)model_number_);
+		ROS_WARN( " < ... IMU on OpenCR is failed to initialize > ");
+		return;
+	}
+	ROS_INFO("  * OpenCR IMU ID [%d] model_number [%d] is found", id_imu_, (int)model_number_);
+	
+	pub_imu_ = parent_.create_publisher<Imu>("dynamixel/imu/raw", 4);
+	sub_calib_ = parent_.create_generic_subscription(
+		"dynamixel/imu/calibration_gyro", "std_msgs/msg/Empty", rclcpp::QoS(10),
+		[this](std::shared_ptr<rclcpp::SerializedMessage> serialized_msg) {
+			Empty msg;
+			rclcpp::Serialization<Empty> serializer;
+			serializer.deserialize_message(serialized_msg.get(), &msg);
+			CallbackCalibGyro(std::make_shared<Empty>(msg));
+		}
+	);
 
-	ROS_INFO( " < ... IMU on OpenCR is initialized > ");
+	is_opencr_ready_ = true;
+	ROS_INFO( " < ............ IMU on OpenCR is initialized > ");
 }
 
 DynamixelHandler::ImuOpenCR::~ImuOpenCR(){ // デストラクタ,  終了処理を行う
@@ -58,6 +84,7 @@ DynamixelHandler::ImuOpenCR::~ImuOpenCR(){ // デストラクタ,  終了処理�
 }
 
 void DynamixelHandler::ImuOpenCR::MainProcess() {
+	if (!is_opencr_ready_) return;
 	static int cnt = -1; cnt++;
 
 	double success_rate = 0;
@@ -139,11 +166,10 @@ void DynamixelHandler::ImuOpenCR::BroadcastImuData() {
 
 void DynamixelHandler::ImuOpenCR::CallbackCalibGyro(const std_msgs::msg::Empty::SharedPtr msg) {
 	(void)msg; // warｎing 抑制
-	if ( !WriteCalibGyro(id_imu_) ) {
+	if ( !WriteCalibGyro(id_imu_) )
 		ROS_ERROR("   Failed to send calibration command to IMU on OpenCR (id=%d)", id_imu_);
-	}
 
-	if ( verbose_callback_ ) ROS_INFO("   Calibrating Gyro (id=%d) ... ", id_imu_);
+	if ( verbose_callback_ ) ROS_INFO("   Calibrating Gyro ............");
 	rclcpp::sleep_for(5000ms);
 	if ( verbose_callback_ ) ROS_INFO("   ... Finished Calibration Gyro");
 }

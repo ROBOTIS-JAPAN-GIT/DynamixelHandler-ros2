@@ -53,7 +53,10 @@
             verbose/read:     {raw: false, err: false}
         option/imu_opencr:
             use: false
+            opencr_id: 40
+            frame_id: base_link
             pub_ratio: 2
+            model_number: 0
             verbose/callback: false
             verbose/write: false
             verbose/read: {raw: false, err: false}

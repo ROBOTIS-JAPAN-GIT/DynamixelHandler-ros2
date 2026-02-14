@@ -43,7 +43,7 @@
         method/split_write: true
     # Optonal機能
         option/external_port:
-            use: true # External Portの機能を使うかどうか
+            use: false # External Portの機能を使うかどうか
             pub_ratio/data: 10  # この回数に一回 Data を読み取る.
             pub_ratio/mode: 100 # この回数に一回 Mode を読み取る, ROM値なので大きくても問題ない．
             verbose/callback: false
@@ -51,7 +51,10 @@
             verbose/read: {raw: false, err: false}
         option/imu_opencr:
             use: true
+            opencr_id: 40
+            frame_id: base_link
             pub_ratio: 2
+            model_number: 0
             verbose/callback: false
             verbose/write: false
             verbose/read: {raw: false, err: false}

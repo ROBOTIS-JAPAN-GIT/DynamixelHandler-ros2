@@ -48,10 +48,12 @@ class DynamixelHandler::ImuOpenCR {
 
 		//* ROS publisher subscriber instance
 		void CallbackCalibGyro(const Empty::SharedPtr msg);
-		rclcpp::Subscription<Empty>::SharedPtr sub_calib_;
+		rclcpp::SubscriptionBase::SharedPtr sub_calib_;
 
-		unsigned int id_imu_ = 40;
+		uint8_t id_imu_ = 40; // OpenCRのIMUのID, デフォルトは40
+		int64_t model_number_ = 0;
 		string frame_id_ = "base_link";
+		bool is_opencr_ready_ = false;
 
 		unsigned int pub_ratio_ = 0; // 何回に1回publishするか
 		bool verbose_callback_ = false; // callback関数のverbose設定
