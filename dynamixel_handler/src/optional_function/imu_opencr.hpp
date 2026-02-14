@@ -42,7 +42,6 @@ class DynamixelHandler::ImuOpenCR {
 		// DynamixelHandlerのインスタンスを保持するための変数
 		DynamixelHandler& parent_;
 
-
 		//* ROS publishを担う関数と subscliber callback関数
 		void BroadcastImuData();
 		rclcpp::Publisher<Imu>::SharedPtr pub_imu_;
@@ -60,9 +59,9 @@ class DynamixelHandler::ImuOpenCR {
 		bool verbose_read_     = false; // serial通信関係のverbose設定
 		bool verbose_read_err_ = false; // serial通信関係のverbose設定
 
-		static inline vector<double> angular_velocity_;
-		static inline vector<double> linear_acceleration_;
-		static inline vector<double> orientation_;
+		static inline array<double, 3> angular_velocity_    = {0.0, 0.0, 0.0};
+		static inline array<double, 3> linear_acceleration_ = {0.0, 0.0, 0.0};
+		static inline array<double, 4> orientation_         = {0.0, 0.0, 0.0, 1.0};
 
 		bool ReadImuData(uint8_t imu_id);
 		bool WriteCalibGyro(uint8_t imu_id);

@@ -28,6 +28,14 @@ DynamixelAddress addr_quat_w(100, DynamixelDataType::TYPE_INT32);
 static constexpr double res_acc = 2.0 / 32768.0 * 9.8;      // 2g [m/s^2]
 static constexpr double res_gyro = 2000.0 / 32768.0 * 3.14159/180;  // 2000dps [rad/s]
 
+#include <cstring>
+float int32_bits_to_float(int32_t data) {
+	uint32_t bits = static_cast<uint32_t>(data);
+	float result = 0.0f;
+	std::memcpy(&result, &bits, sizeof(float));
+	return result;
+}
+
 DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(parent) {
 	ROS_INFO( " < Initializing IMU on OpenCR ...   > ");
 	
@@ -62,7 +70,7 @@ void DynamixelHandler::ImuOpenCR::MainProcess() {
 bool DynamixelHandler::ImuOpenCR::WriteCalibGyro(uint8_t imu_id) {
 	static auto& dyn_comm_ = parent_.dyn_comm_;
 	if (verbose_write_) ROS_INFO("   Sending calibration command to IMU on OpenCR (id=%d) ... ", imu_id);
- 	return dyn_comm_.tryWrite(addr_calib, id_imu_, 1);
+ 	return dyn_comm_.tryWrite(addr_calib, imu_id, 1);
 }
 
 bool DynamixelHandler::ImuOpenCR::ReadImuData(uint8_t imu_id) {
@@ -103,14 +111,12 @@ bool DynamixelHandler::ImuOpenCR::ReadImuData(uint8_t imu_id) {
 		(double)result[4] * res_acc,
 		(double)result[5] * res_acc
 	};
-	int32_t quat[4] = {
-		(int32_t)result[6],
-		(int32_t)result[7],
-		(int32_t)result[8],
-		(int32_t)result[9]
+	orientation_ = {
+		int32_bits_to_float(static_cast<int32_t>(result[6])),
+		int32_bits_to_float(static_cast<int32_t>(result[7])),
+		int32_bits_to_float(static_cast<int32_t>(result[8])),
+		int32_bits_to_float(static_cast<int32_t>(result[9]))
 	};
-	float* quatF = (float*)quat;
-	orientation_ = { quatF[0], quatF[1], quatF[2], quatF[3] };
 	return true;
 }
 
