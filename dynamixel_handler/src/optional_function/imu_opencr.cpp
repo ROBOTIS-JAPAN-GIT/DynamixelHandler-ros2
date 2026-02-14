@@ -25,8 +25,8 @@ DynamixelAddress addr_quat_x(88, DynamixelDataType::TYPE_INT32);
 DynamixelAddress addr_quat_y(92, DynamixelDataType::TYPE_INT32);
 DynamixelAddress addr_quat_z(96, DynamixelDataType::TYPE_INT32);
 DynamixelAddress addr_quat_w(100, DynamixelDataType::TYPE_INT32);
-static constexpr double res_acc = 8.0 / 32768.0;      // 8g
-static constexpr double res_gyro = 2000.0 / 32768.0;  // 2000dps
+static constexpr double res_acc = 2.0 / 32768.0 * 9.8;      // 2g [m/s^2]
+static constexpr double res_gyro = 2000.0 / 32768.0 * 3.14159/180;  // 2000dps [rad/s]
 
 DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(parent) {
 	ROS_INFO( " < Initializing IMU on OpenCR ...   > ");
