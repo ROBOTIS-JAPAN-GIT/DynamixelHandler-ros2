@@ -26,8 +26,6 @@
 
 #include <utility>
 
-namespace {
-
 template <typename MsgT, typename CallbackT>
 rclcpp::SubscriptionBase::SharedPtr CreateGenericSubscriptionWithTypedCallback(
     rclcpp::Node* node,
@@ -99,30 +97,28 @@ void SetupRosInterfacesByCliPro(DynamixelHandler* self) {
         [self](const DynamixelControlProExtendedPosition& msg) { self->CallbackCmd_Pro_ExtendedPosition(msg); });
 }
 
-}  // namespace
-
 void DynamixelHandler::SetupRosInterfaces_byCLI() {
-    if (use_["x"]) SetupRosInterfacesByCliX(this);
-    if (use_["p"]) SetupRosInterfacesByCliP(this);
+    if (use_[ "x" ]) SetupRosInterfacesByCliX(this);
+    if (use_[ "p" ]) SetupRosInterfacesByCliP(this);
     if (use_["pro"]) SetupRosInterfacesByCliPro(this);
 
     sub_status_ = CreateGenericSubscriptionWithTypedCallback<DynamixelStatus>(
         this, "dynamixel/command/status", "dynamixel_handler_msgs/msg/DynamixelStatus", 4,
         [this](const DynamixelStatus& msg) { CallbackCmd_Status(msg); });
     sub_goal_ = CreateGenericSubscriptionWithTypedCallback<DynamixelGoal>(
-        this, "dynamixel/command/goal", "dynamixel_handler_msgs/msg/DynamixelGoal", 4,
-        [this](const DynamixelGoal& msg) { CallbackCmd_Goal(msg); });
+        this, "dynamixel/command/goal"  , "dynamixel_handler_msgs/msg/DynamixelGoal"  , 4,
+        [this](const DynamixelGoal&   msg) { CallbackCmd_Goal(msg);   });
     sub_gain_ = CreateGenericSubscriptionWithTypedCallback<DynamixelGain>(
-        this, "dynamixel/command/gain", "dynamixel_handler_msgs/msg/DynamixelGain", 4,
-        [this](const DynamixelGain& msg) { CallbackCmd_Gain(msg); });
+        this, "dynamixel/command/gain"  , "dynamixel_handler_msgs/msg/DynamixelGain"  , 4,
+        [this](const DynamixelGain&   msg) { CallbackCmd_Gain(msg);   });
     sub_limit_ = CreateGenericSubscriptionWithTypedCallback<DynamixelLimit>(
-        this, "dynamixel/command/limit", "dynamixel_handler_msgs/msg/DynamixelLimit", 4,
-        [this](const DynamixelLimit& msg) { CallbackCmd_Limit(msg); });
+        this, "dynamixel/command/limit" , "dynamixel_handler_msgs/msg/DynamixelLimit" , 4,
+        [this](const DynamixelLimit&  msg) { CallbackCmd_Limit(msg); });
 
-    pub_status_ = create_publisher<DynamixelStatus>("dynamixel/state/status", 4);
+    pub_status_  = create_publisher<DynamixelStatus >("dynamixel/state/status" , 4);
     pub_present_ = create_publisher<DynamixelPresent>("dynamixel/state/present", 4);
-    pub_goal_ = create_publisher<DynamixelGoal>("dynamixel/state/goal", 4);
-    pub_gain_ = create_publisher<DynamixelGain>("dynamixel/state/gain", 4);
-    pub_limit_ = create_publisher<DynamixelLimit>("dynamixel/state/limit", 4);
-    pub_error_ = create_publisher<DynamixelError>("dynamixel/state/error", 4);
+    pub_goal_    = create_publisher<DynamixelGoal   >("dynamixel/state/goal"   , 4);
+    pub_gain_    = create_publisher<DynamixelGain   >("dynamixel/state/gain"   , 4);
+    pub_limit_   = create_publisher<DynamixelLimit  >("dynamixel/state/limit"  , 4);
+    pub_error_   = create_publisher<DynamixelError  >("dynamixel/state/error"  , 4);
 }

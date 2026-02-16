@@ -62,8 +62,8 @@ add_executable(
   ${PROJECT_NAME} 
 	src/dynamixel_handler_ros_interface_sub.cpp
 	src/dynamixel_handler_ros_interface_pub.cpp
-	src/dynamixel_handler_ros_setup_by_program.cpp
-	src/dynamixel_handler_ros_setup_by_cli.cpp
+	src/dynamixel_handler_ros_setup_for_program.cpp
+	src/dynamixel_handler_ros_setup_for_cli.cpp
 	src/dynamixel_handler_dyn_interface_loop.cpp
 	src/dynamixel_handler_dyn_interface_once.cpp
 	src/dynamixel_handler.cpp

@@ -13,13 +13,13 @@
         init/expected_servo_num: 0
         init/servo_auto_search: {min_id: 0, max_id: 20, retry_times: 0} # サーボのIDを自動で探索するかどうか
         init/hardware_error_auto_clean: true # 初期化時に Hardware error を自動でクリアするかどうか
-        init/torque_auto_enable: true # 初期化時に Torque を自動でONにするかどうか
-        term/torque_auto_disable: true # 終了時に Torque を自動でOFFにするかどうか
-        term/servo_auto_stop: true # 終了時に電流・速度制御のサーボを停止するかどうか
+        init/torque_auto_enable:        true # 初期化時に Torque を自動でONにするかどうか
+        term/torque_auto_disable:       true # 終了時に Torque を自動でOFFにするかどうか
+        term/servo_auto_stop:           true # 終了時に電流・速度制御のサーボを停止するかどうか
     # デフォルト値の設定
-        default/profile_acc: 600.0 # deg/s^2 [double]
-        default/profile_vel: 200.0 # deg/s [double]
-        default/return_delay_time: 0.0 # us [double]
+        default/profile_acc:      6008.0 # deg/s^2
+        default/profile_vel:      1000.0 # deg/s
+        default/return_delay_time:   0.0 # us [double]
     # ループの設定
         loop_rate: 1000 # メインループの周期
         verbose_ratio: 1000 # メインループのlog出力の割合(処理時間，通信の成功率), ex 100なら100回に1回出力
@@ -40,31 +40,31 @@
         pub_ratio/error:  1307 # この回数に一回 Hardware error を読み取る, 0=初回のみ
         pub_ratio/extra: 90130 # この回数に一回 Hardware error を読み取る, 0=初回のみ
     # Read/Write方式
-        method/fast_read: true
-        method/split_read: false
-        method/split_write: true
+        method/fast_read:    true
+        method/split_read:  false
+        method/split_write:  true
     # Optonal機能
         option/external_port:
             use: false # External Portの機能を使うかどうか
-            pub_ratio/data: 10  # この回数に一回 Data を読み取る.
+            pub_ratio/data:  10  # この回数に一回 Data を読み取る.
             pub_ratio/mode: 100 # この回数に一回 Mode を読み取る, ROM値なので大きくても問題ない．
             verbose/callback: false
             verbose/write:    false
             verbose/read:     {raw: false, err: false}
         option/imu_opencr:
             use: false
-            opencr_id: 40
-            frame_id: base_link
-            pub_ratio: 2
+            pub_ratio:    2
+            opencr_id:   40
             model_number: 0
+            frame_id: base_link
             adjust/rpy_deg: [0.0, 0.0, 180.0] # OpenCR->robot の固定回転 [roll, pitch, yaw] [deg]
             adjust/flip_z_axis: true # false: OpenCRのデフォルト左手系/ true: 右手系
             verbose/callback: false
-            verbose/write: false
-            verbose/read: {raw: false, err: false}
+            verbose/write:    false
+            verbose/read:     {raw: false, err: false}
     # デバッグ用
         max_log_width: 6
-        verbose/callback: false
+        verbose/callback:     false
         verbose/write_status: false
         verbose/write_goal:   false
         verbose/write_gain:   false
@@ -76,7 +76,7 @@
         verbose/read_limit:   {raw: false, err: false}
         verbose/read_hardware_error: true
     # 通信の設定
-        dyn_comm/retry_num: 5
+        dyn_comm/retry_num:    5
         dyn_comm/inerval_msec: 2
         dyn_comm/verbose: false
     # 開発用

@@ -126,6 +126,9 @@ git clone --recursive https://github.com/ROBOTIS-JAPAN-GIT/DynamixelHandler-ros2
 # 旧バージョンを使いたい場合
 git clone --recursive https://github.com/ROBOTIS-JAPAN-GIT/DynamixelHandler-ros2.git dynamixel_handler -b ver0.1.0
 ```
+> [!NOTE]
+> 既存クローンでブランチ更新した場合（submodule の配置変更を含む変更を pull / merge した場合）は，
+> リポジトリ直下で一度 `git submodule update --init --recursive` を実行してから build すること．
 
 ### ビルド
 ```bash
@@ -270,7 +273,7 @@ input_voltage_v: [0.0, 0.0] # 現在の入力電圧
 上記は電流，速度，位置を読み込むように設定した場合なのでそれ以外の要素は初期値の0になっている．   
 read & publish される情報の選択については [Parameters](#parameters) の章の[実行時の動作設定](#実行時の動作設定)を参照．
 
-#### 例: Dynamixel のデバック用情報の確認
+#### 例: Dynamixel のデバッグ用情報の確認
 
 ```bash
 # 2-2. とは別のターミナルを開いて $ source ~/ros2_ws/install/setup.bash 実行後
@@ -332,7 +335,7 @@ IDにかかわらずすべてのサーボが上記の動作をしているはず
 
 ***************************
 
-### 6. ダミーサーボ機能を利用してデバックする
+### 6. ダミーサーボ機能を利用してデバッグする
 
 `init/dummy_servo_list` パラメータに $1, \ldots, 254$ のIDを指定することで，実際のサーボが接続されていなくても，そのIDのサーボをダミーサーボとして簡易的にシミュレートすることができる．
 最も簡単に利用する方法は，`dynamixel_handler`ノードの起動時にパラメータを指定することである．
@@ -1455,6 +1458,10 @@ ros2 launch dynamixel_handler dynamixel_unify_baudrate_launch.xml
 ```
 全てのdynamixelの baudrate を`target_baudrate`に設定してくれる．
 
+> [!NOTE]
+> `dynamixel_unify_baudrate` は Python ノードであり，内部で `_mylib_dynamixel`（pybind11モジュール）を利用する．
+> `_mylib_dynamixel` が見つからない場合は，`dynamixel_handler` パッケージを再buildすること．
+
 ***************************
 
 ## Latency Timer
@@ -1536,6 +1543,27 @@ present系の8つのアドレスすべてから読み込んでも，同時読み
 
 ターミナルを立ち上げ直すか，以下を実行．
 ```bash
+source ~/ros2_ws/install/setup.bash
+```
+
+### `colcon build` で `src/internal/mylib_dynamixel/...` が見つからない場合
+
+submodule 未初期化が原因のことが多い．以下を実行してから再buildする．
+
+```bash
+cd ~/ros2_ws/src/DynamixelHandler-ros2
+git submodule update --init --recursive
+cd ~/ros2_ws
+colcon build --packages-select dynamixel_handler
+```
+
+### `dynamixel_unify_baudrate` 実行時に `_mylib_dynamixel` が見つからない場合
+
+`dynamixel_handler` の build が未完了か，ビルド成果物が古い．以下を再実行する．
+
+```bash
+cd ~/ros2_ws
+colcon build --packages-select dynamixel_handler
 source ~/ros2_ws/install/setup.bash
 ```
 

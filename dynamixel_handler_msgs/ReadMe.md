@@ -28,7 +28,7 @@
   
 #### コマンドラインから使う想定のもの
 
-   **> デバック用**
+   **> デバッグ用**
    - `/dynamixel/debug` : サーボが動かないときにに確認したい情報をまとめたもの
    - `/dynamixel/shortcut` : トルクのオンオフ・エラー解除・IDの追加削除などを行うためのもの
 
@@ -168,7 +168,7 @@ temperature_degc: [0.0, 0.0, 0.0, 0.0]
 dynamixel_handler_msgs::msg::DxlCommandsX cmd;
 
 // id = 1,2,3 のサーボを **torque_on**.
-cmd.satatus.set__id_list( {1,2,3} )
+cmd.status.set__id_list( {1,2,3} )
            .set__torque( {true, true, true} );
 // id:1 のサーボを電流制御モードで50degに移動
 cmd.current_base_position_control.id_list.push_back(1);
@@ -767,7 +767,7 @@ Dynamixelの起動、停止、エラー解除などをショートカット的�
    ```
 
 ### `DynamixelDebug` type
-デバック用の情報を読み込むためのトピック `/dynamixel/debug` の型．  
+デバッグ用の情報を読み込むためのトピック `/dynamixel/debug` の型．  
 サーボが動かないときの原因を調べるときに確認することを想定している． 
 現在のstatusである，トルクのon/offやエラーの有無，応答状態と制御モードの確認に加えて，電流，速度，位置のgoal値とpresent値を読み取ることができる．
    ```yml

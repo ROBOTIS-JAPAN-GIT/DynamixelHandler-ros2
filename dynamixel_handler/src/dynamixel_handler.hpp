@@ -112,10 +112,10 @@ class DynamixelHandler : public rclcpp::Node {
         void CallbackCmd_Gain   (const DynamixelGain& msg); 
         void CallbackCmd_Limit  (const DynamixelLimit& msg);
         // void CallbackExtra (const DynamixelExtra& msg);  // todo
-        void CallbackCmdsX               (std::shared_ptr<DxlCommandsX> msg);
-        void CallbackCmdsP               (std::shared_ptr<DxlCommandsP> msg);
-        void CallbackCmdsPro             (std::shared_ptr<DxlCommandsPro> msg);
-        void CallbackCmdsAll             (std::shared_ptr<DxlCommandsAll> msg);
+        void CallbackCmdsX  (std::shared_ptr<DxlCommandsX> msg);
+        void CallbackCmdsP  (std::shared_ptr<DxlCommandsP> msg);
+        void CallbackCmdsPro(std::shared_ptr<DxlCommandsPro> msg);
+        void CallbackCmdsAll(std::shared_ptr<DxlCommandsAll> msg);
         void SetupRosInterfaces_byProgram();
         void SetupRosInterfaces_byCLI();
 

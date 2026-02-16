@@ -26,11 +26,11 @@ void DynamixelHandler::SetupRosInterfaces_byProgram() {
 
     if (use_[ "x" ]) sub_dxl_x_cmds_   = create_subscription<DxlCommandsX  >(
                         "dynamixel/commands/x", 10,
-                        [this](std::shared_ptr<DxlCommandsX> msg) { CallbackCmdsX(msg); });
+                        [this](std::shared_ptr<DxlCommandsX  > msg) { CallbackCmdsX(msg);  });
     if (use_[ "p" ]) sub_dxl_p_cmds_   = create_subscription<DxlCommandsP  >(
                         "dynamixel/commands/p", 10,
-                        [this](std::shared_ptr<DxlCommandsP> msg) { CallbackCmdsP(msg); });
+                        [this](std::shared_ptr<DxlCommandsP  > msg) { CallbackCmdsP(msg);  });
     if (use_["pro"]) sub_dxl_pro_cmds_ = create_subscription<DxlCommandsPro>(
                         "dynamixel/commands/pro", 10,
-                        [this](std::shared_ptr<DxlCommandsPro> msg) { CallbackCmdsPro(msg); });
+                        [this](std::shared_ptr<DxlCommandsPro> msg) { CallbackCmdsPro(msg);});
 }

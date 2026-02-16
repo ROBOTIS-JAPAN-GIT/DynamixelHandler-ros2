@@ -38,7 +38,7 @@ source ~/.bashrc # 初回 build 時のみ
 </details>
 
 <details>
-<summary>Cmakelist.txt</summary>
+<summary>CMakeLists.txt</summary>
 
 ```cmake
 cmake_minimum_required(VERSION 3.8)
@@ -132,7 +132,7 @@ ros2 launch dynamixel_handler_examples example1.launch.py
 > プログラムから動作制御するための topic として `/dynamixel/commands/x` (`DxlCommandsX`型) が用意されている．     
 > (Pシリーズを制御する場合は `/dynamixel/commands/p` を利用, 両方を併用する場合は `/dynamixel/commands/all` を利用)   
 >
-> また，プログラムから情報取得するための topic として `/dynamxiel/states` (`DxlStates`型) が用意されている．    
+> また，プログラムから情報取得するための topic として `/dynamixel/states` (`DxlStates`型) が用意されている．    
 > (シリーズ問わず全ての情報を利用できる)
 > 
 > 個別の topic を使うことも可能だが，publisher, subscriber の数が増えて coding の手間が増えるので非推奨．

@@ -3,14 +3,21 @@
 ## プログラムの構成
 
 Dynamixelとやり取りを行うライブラリは[別のリポジトリ](https://github.com/SHINOBI-organization/lib_dynamixel)として管理しており，git submoduleの機能を使って取り込んでいる．
+現在の取り込み先は `src/internal/mylib_dynamixel` である．
+
+`develop/faster_build` マージ後は，`dynamixel_unify_baudrate` が Python ノード実装になっており，
+内部で pybind11 モジュール `_mylib_dynamixel` を利用する構成になっている．
 
 このパッケージはROS2ノードとして動作し，srcディレクトリ以下に主要な実装が配置されています．各ファイルの役割は以下の通りです:
 
 - **src/main.cpp**  
   ノードのエントリーポイント．
-  初期化処理として ROS2 node の初期化やパラメータの設定，publisherやsubscriberの生成などを行っています．
-  さらに，同期的に動作する処理を `MainLoop()` に記述し，その中で実際の書き込みや読み込み処理を行っています．
-  また，ノードの終了時には，各サーボのトルクをオフにするなどの終了処理を行っています．
+  `DynamixelHandler` の生成，executor への登録，spin を行う最小構成．
+
+- **src/dynamixel_handler.cpp**  
+  `DynamixelHandler` クラス本体の実装．
+  初期化処理，パラメータ読込，publisher/subscriber生成，optional機能の起動，
+  および `MainLoop()` の実処理（read/write，publish）を担当する．
 
 - **src/dynamixel_handler.hpp**  
   本パッケージの中心となるクラスの宣言を行い，Dynamixelとの通信および各種データ（状態，コマンド，制御パラメータ）の管理を実装しています．
@@ -21,13 +28,30 @@ Dynamixelとやり取りを行うライブラリは[別のリポジトリ](https
 - **src/dynamixel_handler_ros_interface_pub.cpp**  
   ROSのpublishインターフェースを担当し，Dynamixelの状態やエラー情報，デバッグ情報などを各トピックに出力する処理を実装しています．
 
+- **src/dynamixel_handler_ros_setup_for_program.cpp**  
+  プログラム連携向けのROS interface初期化を担当し，
+  `dynamixel/commands/{all,x,p,pro}` と `dynamixel/states` / `dynamixel/debug` の生成を行う．
+
+- **src/dynamixel_handler_ros_setup_for_cli.cpp**  
+  CLI運用向けのROS interface初期化を担当し，
+  `dynamixel/command/...` 系・`dynamixel/state/...` 系など細分化トピックの生成を行う．
+
 - **src/dynamixel_handler_dyn_interface_loop.cpp**  
   動作ループ内での一括読み書き処理（SyncRead，SyncWrite）を担当し，各サーボの状態やエラー情報の更新，コマンドの指令，状態の取得などを実装しています．
 
 - **src/dynamixel_handler_dyn_interface_once.cpp**  
   動作ループ外での一括読み書き処理（Read，Write）を担当し，各サーボの状態やエラー情報の更新，コマンドの指令，状態の取得などを実装しています．
 
-さらに，myUtilsディレクトリ内のユーティリティ群は，ログ出力やフォーマッティング，イテレータの利便性向上など，本パッケージ全体で共通して利用される補助的な機能を提供しています．
+- **src/optional_function/**  
+  optional機能の実装ディレクトリ．
+  現在は `external_port.cpp/.hpp` と `imu_opencr.cpp/.hpp` を含む．
+
+- **src/sub_node/dynamixel_unify_baudrate.py**  
+  baudrate一括変更ノード本体（Python）．
+  pybind11モジュール `_mylib_dynamixel` を介してシリアル通信を行う．
+
+さらに，`src/internal/myUtils` 内のユーティリティ群は，ログ出力やフォーマッティング，イテレータの利便性向上など，本パッケージ全体で共通して利用される補助的な機能を提供している．
+`src/internal/mylib_dynamixel` は通信ライブラリ本体（submodule）であり，`dynamixel_communicator` と `_mylib_dynamixel` のビルド元になっている．
 
 ***************************
 
@@ -139,7 +163,7 @@ class <FunctionClass>;
 std::unique_ptr<FunctionClass> <function_ptr>_;
 ```
 
-`src/main.cpp`
+`src/dynamixel_handler.cpp`
 
 ```cpp
 #include "optional_function/<function_name>.hpp"
@@ -214,7 +238,7 @@ parent_.get_parameter_or("option/<function_name>.verbose/read.err", verbose_read
 
 1. `optional_function/<function_name>.hpp/.cpp` を作成したか．
 2. `dynamixel_handler.hpp` に前方宣言と `unique_ptr` を追加したか．
-3. `main.cpp` に生成条件と `MainLoop` 呼び出しを追加したか．
+3. `dynamixel_handler.cpp` に生成条件と `MainLoop` 呼び出しを追加したか．
 
 #### 挙動
 
