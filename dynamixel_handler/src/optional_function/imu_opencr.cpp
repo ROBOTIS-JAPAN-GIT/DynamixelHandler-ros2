@@ -41,13 +41,13 @@ float int32_bits_to_float(int32_t data) {
 	return result;
 }
 
-array<double, 4> normalize_quaternion(const array<double, 4>& q) {
+array<double, 4> normalize_quat(const array<double, 4>& q) {
 	const double norm = std::sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
 	if ( norm < 1.0e-12 ) return {0.0, 0.0, 0.0, 1.0};
 	return {q[0] / norm, q[1] / norm, q[2] / norm, q[3] / norm};
 }
 
-array<double, 4> multiply_quaternion(const array<double, 4>& q1, const array<double, 4>& q2) {
+array<double, 4> multiply_quat(const array<double, 4>& q1, const array<double, 4>& q2) {
 	return {
 		q1[3] * q2[0] + q1[0] * q2[3] + q1[1] * q2[2] - q1[2] * q2[1],
 		q1[3] * q2[1] - q1[0] * q2[2] + q1[1] * q2[3] + q1[2] * q2[0],
@@ -56,14 +56,10 @@ array<double, 4> multiply_quaternion(const array<double, 4>& q1, const array<dou
 	};
 }
 
-array<double, 4> conjugate_quaternion(const array<double, 4>& q) {
-	return {-q[0], -q[1], -q[2], q[3]};
-}
-
 array<double, 3> rotate_vector_by_quat(const array<double, 3>& v, const array<double, 4>& q) {
 	const array<double, 4> q_vec = {v[0], v[1], v[2], 0.0};
-	const array<double, 4> q_conj = conjugate_quaternion(q);
-	const array<double, 4> q_rotated = multiply_quaternion(multiply_quaternion(q, q_vec), q_conj);
+	const array<double, 4> q_conj = {-q[0], -q[1], -q[2], q[3]};
+	const array<double, 4> q_rotated = multiply_quat(multiply_quat(q, q_vec), q_conj);
 	return {q_rotated[0], q_rotated[1], q_rotated[2]};
 }
 
@@ -80,7 +76,7 @@ array<double, 4> convert_rpy_to_quat(double roll_deg, double pitch_deg, double y
 	const double cy = std::cos(yaw * 0.5);
 	const double sy = std::sin(yaw * 0.5);
 
-	return normalize_quaternion({
+	return normalize_quat({
 		sr * cp * cy - cr * sp * sy,
 		cr * sp * cy + sr * cp * sy,
 		cr * cp * sy - sr * sp * cy,
@@ -102,8 +98,8 @@ DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(paren
 	parent_.get_parameter_or("option/imu_opencr.verbose/read.raw", verbose_read_    , false);
 	parent_.get_parameter_or("option/imu_opencr.verbose/read.err", verbose_read_err_, false);
 	parent_.get_parameter_or("option/imu_opencr.adjust/rpy_deg", rpy_adjust_deg, vector<double>{0.0, 0.0, 0.0});
+	parent_.get_parameter_or("option/imu_opencr.adjust/flip_z_axis", flip_z_axis_, false);
 	if ( rpy_adjust_deg.size() != 3 ) rpy_adjust_deg = {0.0, 0.0, 0.0};
-	ROS_INFO("  * IMU adjust [roll, pitch, yaw] = [%.2f, %.2f, %.2f]", rpy_adjust_deg[0], rpy_adjust_deg[1], rpy_adjust_deg[2]);
 	
 	quat_adjust_ = convert_rpy_to_quat(rpy_adjust_deg[0], rpy_adjust_deg[1], rpy_adjust_deg[2]);
 	
@@ -121,6 +117,8 @@ DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(paren
 		return;
 	}
 	ROS_INFO("  * OpenCR IMU ID [%d] model_number [%d] is found", id_imu_, (int)model_number);
+	ROS_INFO("    * adjust coord. [roll, pitch, yaw] = [%.2f, %.2f, %.2f]", rpy_adjust_deg[0], rpy_adjust_deg[1], rpy_adjust_deg[2]);
+	ROS_INFO("    * adjust coord. flip_z_axis = %s", flip_z_axis_ ? "true" : "false");
 	
 	pub_imu_ = parent_.create_publisher<Imu>("dynamixel/imu/raw", 4);
 	sub_calib_ = parent_.create_generic_subscription(
@@ -189,26 +187,27 @@ bool DynamixelHandler::ImuOpenCR::ReadImuData(uint8_t imu_id) {
 	}
 
 	//* 読み取ったデータを反映
-	const array<double, 3> angular_velocity_opencr = {
+	const double _sign = flip_z_axis_ ? -1.0 : 1.0;
+	const array<double, 3> angular_velocity_handedness = {
 		(double)result[0] * res_gyro,
 		(double)result[1] * res_gyro,
-		(double)result[2] * res_gyro
+		(double)result[2] * res_gyro * _sign
 	};
-	const array<double, 3> linear_acceleration_opencr = {
+	const array<double, 3> linear_acceleration_handedness = {
 		(double)result[3] * res_acc,
 		(double)result[4] * res_acc,
-		(double)result[5] * res_acc
+		(double)result[5] * res_acc * _sign
 	};
-	angular_velocity_ = rotate_vector_by_quat(angular_velocity_opencr, quat_adjust_);
-	linear_acceleration_ = rotate_vector_by_quat(linear_acceleration_opencr, quat_adjust_);
+	angular_velocity_ = rotate_vector_by_quat(angular_velocity_handedness, quat_adjust_);
+	linear_acceleration_ = rotate_vector_by_quat(linear_acceleration_handedness, quat_adjust_);
 
 	// OpenCR quaternion is read in [w, x, y, z] order and converted to ROS [x, y, z, w].
 	const double q0_w = int32_bits_to_float(static_cast<int32_t>(result[6]));
 	const double q1_x = int32_bits_to_float(static_cast<int32_t>(result[7]));
 	const double q2_y = int32_bits_to_float(static_cast<int32_t>(result[8]));
 	const double q3_z = int32_bits_to_float(static_cast<int32_t>(result[9]));
-	const array<double, 4> orientation_opencr = normalize_quaternion({q1_x, q2_y, q3_z, q0_w});
-	orientation_ = normalize_quaternion(multiply_quaternion(orientation_opencr, quat_adjust_));
+	const array<double, 4> orientation_handedness = normalize_quat({q1_x * _sign, q2_y * _sign, q3_z, q0_w});
+	orientation_ = normalize_quat(multiply_quat(orientation_handedness, quat_adjust_));
 
 	return true;
 }

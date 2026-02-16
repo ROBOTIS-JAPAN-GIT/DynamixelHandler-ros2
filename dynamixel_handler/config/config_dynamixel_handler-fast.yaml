@@ -58,6 +58,7 @@
             pub_ratio: 2
             model_number: 0
             adjust/rpy_deg: [0.0, 0.0, 0.0] # OpenCR->robot の固定回転 [roll, pitch, yaw] [deg]
+            adjust/flip_z_axis: false # 左手系/右手系差を z 反転で補正する
             verbose/callback: false
             verbose/write: false
             verbose/read: {raw: false, err: false}
