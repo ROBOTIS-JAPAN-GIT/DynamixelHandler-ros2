@@ -189,9 +189,9 @@ bool DynamixelHandler::ImuOpenCR::ReadImuData(uint8_t imu_id) {
 	//* 読み取ったデータを反映
 	const double _sign = flip_z_axis_ ? -1.0 : 1.0;
 	const array<double, 3> angular_velocity_handedness = {
-		(double)result[0] * res_gyro,
-		(double)result[1] * res_gyro,
-		(double)result[2] * res_gyro * _sign
+		(double)result[0] * res_gyro * _sign,
+		(double)result[1] * res_gyro * _sign,
+		(double)result[2] * res_gyro
 	};
 	const array<double, 3> linear_acceleration_handedness = {
 		(double)result[3] * res_acc,
@@ -203,10 +203,10 @@ bool DynamixelHandler::ImuOpenCR::ReadImuData(uint8_t imu_id) {
 
 	// OpenCR quaternion is read in [w, x, y, z] order and converted to ROS [x, y, z, w].
 	const double q0_w = int32_bits_to_float(static_cast<int32_t>(result[6]));
-	const double q1_x = int32_bits_to_float(static_cast<int32_t>(result[7]));
-	const double q2_y = int32_bits_to_float(static_cast<int32_t>(result[8]));
+	const double q1_x = int32_bits_to_float(static_cast<int32_t>(result[7])) * _sign;
+	const double q2_y = int32_bits_to_float(static_cast<int32_t>(result[8])) * _sign;
 	const double q3_z = int32_bits_to_float(static_cast<int32_t>(result[9]));
-	const array<double, 4> orientation_handedness = normalize_quat({q1_x * _sign, q2_y * _sign, q3_z, q0_w});
+	const array<double, 4> orientation_handedness = normalize_quat({q1_x, q2_y, q3_z, q0_w});
 	orientation_ = normalize_quat(multiply_quat(orientation_handedness, quat_adjust_));
 
 	return true;
