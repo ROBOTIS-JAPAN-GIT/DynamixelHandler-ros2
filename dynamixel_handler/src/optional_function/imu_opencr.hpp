@@ -51,7 +51,6 @@ class DynamixelHandler::ImuOpenCR {
 		rclcpp::SubscriptionBase::SharedPtr sub_calib_;
 
 		uint8_t id_imu_ = 40; // OpenCRのIMUのID, デフォルトは40
-		int64_t model_number_ = 0;
 		string frame_id_ = "base_link";
 		bool is_opencr_ready_ = false;
 

@@ -41,8 +41,9 @@ float int32_bits_to_float(int32_t data) {
 DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(parent) {
 	ROS_INFO( " < Initializing IMU on OpenCR .............. > ");
 	
-	id_imu_ = static_cast<uint8_t>(parent_.get_parameter_or("option/imu_opencr.opencr_id", 40));
-	model_number_ = parent_.get_parameter_or("option/imu_opencr.model_number", int64_t(0));
+	int64_t model_number;
+	parent_.get_parameter_or("option/imu_opencr.opencr_id", id_imu_, uint8_t{40});
+	parent_.get_parameter_or("option/imu_opencr.model_number", model_number, int64_t(0));
 	parent_.get_parameter_or("option/imu_opencr.frame_id", frame_id_, "base_link"s);
 	parent_.get_parameter_or("option/imu_opencr.pub_ratio", pub_ratio_, 10u);
 	parent_.get_parameter_or("option/imu_opencr.verbose/callback", verbose_callback_, false);
@@ -57,12 +58,12 @@ DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(paren
 		return;
 	}
 	auto oepncr_num = dyn_comm_.tryRead(AddrCommon::model_number, id_imu_);
-	if ( oepncr_num != model_number_ ) {
-		ROS_INFO("  * OpenCR IMU ID [%d] model_number [%d] is ignored (expected [%d])", id_imu_, (int)oepncr_num, (int)model_number_);
+	if ( oepncr_num != model_number ) {
+		ROS_INFO("  * OpenCR IMU ID [%d] model_number [%d] is ignored (expected [%d])", id_imu_, (int)oepncr_num, (int)model_number);
 		ROS_WARN( " < ... IMU on OpenCR is failed to initialize > ");
 		return;
 	}
-	ROS_INFO("  * OpenCR IMU ID [%d] model_number [%d] is found", id_imu_, (int)model_number_);
+	ROS_INFO("  * OpenCR IMU ID [%d] model_number [%d] is found", id_imu_, (int)model_number);
 	
 	pub_imu_ = parent_.create_publisher<Imu>("dynamixel/imu/raw", 4);
 	sub_calib_ = parent_.create_generic_subscription(
