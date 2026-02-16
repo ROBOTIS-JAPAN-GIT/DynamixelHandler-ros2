@@ -4,6 +4,7 @@
 #include "myUtils/make_iterator_convenient.hpp"
 #include "rclcpp/serialization.hpp"
 #include "rclcpp/serialized_message.hpp"
+#include <cmath>
 
 using namespace std::string_literals;
 
@@ -16,17 +17,19 @@ using namespace std::string_literals;
 #define ROS_STOP(...) \
     {{ RCLCPP_FATAL(parent_.get_logger(), __VA_ARGS__); rclcpp::shutdown(); std::exit(EXIT_FAILURE); }}
 
-DynamixelAddress addr_calib(64, DynamixelDataType::TYPE_UINT8);
-DynamixelAddress addr_gx(76, DynamixelDataType::TYPE_INT16);
-DynamixelAddress addr_gy(78, DynamixelDataType::TYPE_INT16);
-DynamixelAddress addr_gz(80, DynamixelDataType::TYPE_INT16);
-DynamixelAddress addr_ax(82, DynamixelDataType::TYPE_INT16);
-DynamixelAddress addr_ay(84, DynamixelDataType::TYPE_INT16);
-DynamixelAddress addr_az(86, DynamixelDataType::TYPE_INT16);
-DynamixelAddress addr_quat_x(88, DynamixelDataType::TYPE_INT32);
-DynamixelAddress addr_quat_y(92, DynamixelDataType::TYPE_INT32);
-DynamixelAddress addr_quat_z(96, DynamixelDataType::TYPE_INT32);
-DynamixelAddress addr_quat_w(100, DynamixelDataType::TYPE_INT32);
+using OpenCRAddress = DynamixelAddress;
+OpenCRAddress addr_calib(64, DynamixelDataType::TYPE_UINT8);
+OpenCRAddress addr_gx(76, DynamixelDataType::TYPE_INT16);
+OpenCRAddress addr_gy(78, DynamixelDataType::TYPE_INT16);
+OpenCRAddress addr_gz(80, DynamixelDataType::TYPE_INT16);
+OpenCRAddress addr_ax(82, DynamixelDataType::TYPE_INT16);
+OpenCRAddress addr_ay(84, DynamixelDataType::TYPE_INT16);
+OpenCRAddress addr_az(86, DynamixelDataType::TYPE_INT16);
+OpenCRAddress addr_quat_w(88, DynamixelDataType::TYPE_INT32);
+OpenCRAddress addr_quat_x(92, DynamixelDataType::TYPE_INT32);
+OpenCRAddress addr_quat_y(96, DynamixelDataType::TYPE_INT32);
+OpenCRAddress addr_quat_z(100, DynamixelDataType::TYPE_INT32);
+static constexpr uint8_t CALIB_GYRO_CMD = 1;
 static constexpr double res_acc = 2.0 / 32768.0 * 9.8;      // 2g [m/s^2]
 static constexpr double res_gyro = 2000.0 / 32768.0 * 3.14159/180;  // 2000dps [rad/s]
 
@@ -38,10 +41,58 @@ float int32_bits_to_float(int32_t data) {
 	return result;
 }
 
+array<double, 4> normalize_quaternion(const array<double, 4>& q) {
+	const double norm = std::sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
+	if ( norm < 1.0e-12 ) return {0.0, 0.0, 0.0, 1.0};
+	return {q[0] / norm, q[1] / norm, q[2] / norm, q[3] / norm};
+}
+
+array<double, 4> multiply_quaternion(const array<double, 4>& q1, const array<double, 4>& q2) {
+	return {
+		q1[3] * q2[0] + q1[0] * q2[3] + q1[1] * q2[2] - q1[2] * q2[1],
+		q1[3] * q2[1] - q1[0] * q2[2] + q1[1] * q2[3] + q1[2] * q2[0],
+		q1[3] * q2[2] + q1[0] * q2[1] - q1[1] * q2[0] + q1[2] * q2[3],
+		q1[3] * q2[3] - q1[0] * q2[0] - q1[1] * q2[1] - q1[2] * q2[2]
+	};
+}
+
+array<double, 4> conjugate_quaternion(const array<double, 4>& q) {
+	return {-q[0], -q[1], -q[2], q[3]};
+}
+
+array<double, 3> rotate_vector_by_quat(const array<double, 3>& v, const array<double, 4>& q) {
+	const array<double, 4> q_vec = {v[0], v[1], v[2], 0.0};
+	const array<double, 4> q_conj = conjugate_quaternion(q);
+	const array<double, 4> q_rotated = multiply_quaternion(multiply_quaternion(q, q_vec), q_conj);
+	return {q_rotated[0], q_rotated[1], q_rotated[2]};
+}
+
+array<double, 4> convert_rpy_to_quat(double roll_deg, double pitch_deg, double yaw_deg) {
+	static constexpr double DEG2RAD = 3.14159265358979323846 / 180.0;
+	const double roll = roll_deg * DEG2RAD;
+	const double pitch = pitch_deg * DEG2RAD;
+	const double yaw = yaw_deg * DEG2RAD;
+
+	const double cr = std::cos(roll * 0.5);
+	const double sr = std::sin(roll * 0.5);
+	const double cp = std::cos(pitch * 0.5);
+	const double sp = std::sin(pitch * 0.5);
+	const double cy = std::cos(yaw * 0.5);
+	const double sy = std::sin(yaw * 0.5);
+
+	return normalize_quaternion({
+		sr * cp * cy - cr * sp * sy,
+		cr * sp * cy + sr * cp * sy,
+		cr * cp * sy - sr * sp * cy,
+		cr * cp * cy + sr * sp * sy
+	});
+}
+
 DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(parent) {
 	ROS_INFO( " < Initializing IMU on OpenCR .............. > ");
 	
-	int64_t model_number;
+	int64_t model_number = 0;
+	vector<double> rpy_adjust_deg = {0.0, 0.0, 0.0};
 	parent_.get_parameter_or("option/imu_opencr.opencr_id", id_imu_, uint8_t{40});
 	parent_.get_parameter_or("option/imu_opencr.model_number", model_number, int64_t(0));
 	parent_.get_parameter_or("option/imu_opencr.frame_id", frame_id_, "base_link"s);
@@ -50,6 +101,12 @@ DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(paren
 	parent_.get_parameter_or("option/imu_opencr.verbose/write"   , verbose_write_   , false);
 	parent_.get_parameter_or("option/imu_opencr.verbose/read.raw", verbose_read_    , false);
 	parent_.get_parameter_or("option/imu_opencr.verbose/read.err", verbose_read_err_, false);
+	parent_.get_parameter_or("option/imu_opencr.adjust/rpy_deg", rpy_adjust_deg, vector<double>{0.0, 0.0, 0.0});
+	if ( rpy_adjust_deg.size() != 3 ) rpy_adjust_deg = {0.0, 0.0, 0.0};
+	ROS_INFO("  * IMU adjust [roll, pitch, yaw] = [%.2f, %.2f, %.2f]", rpy_adjust_deg[0], rpy_adjust_deg[1], rpy_adjust_deg[2]);
+	
+	quat_adjust_ = convert_rpy_to_quat(rpy_adjust_deg[0], rpy_adjust_deg[1], rpy_adjust_deg[2]);
+	
 	static auto& dyn_comm_ = parent_.dyn_comm_;
 
 	if ( !dyn_comm_.tryPing(id_imu_) ) {
@@ -97,16 +154,21 @@ void DynamixelHandler::ImuOpenCR::MainProcess() {
 
 bool DynamixelHandler::ImuOpenCR::WriteCalibGyro(uint8_t imu_id) {
 	static auto& dyn_comm_ = parent_.dyn_comm_;
-	if (verbose_write_) ROS_INFO("   Sending calibration command to IMU on OpenCR (id=%d) ... ", imu_id);
- 	return dyn_comm_.tryWrite(addr_calib, imu_id, 1);
+	if (verbose_write_) {
+		static const vector<OpenCRAddress> addr_write_list = {addr_calib};
+		const map<uint8_t, vector<int64_t>> id_data_map = {{imu_id, {CALIB_GYRO_CMD}}};
+		ROS_INFO_STREAM("OpenCR IMU will be written"
+						<< control_table_layout(parent_.width_log_, id_data_map, addr_write_list));
+	}
+ 	return dyn_comm_.tryWrite(addr_calib, imu_id, CALIB_GYRO_CMD);
 }
 
 bool DynamixelHandler::ImuOpenCR::ReadImuData(uint8_t imu_id) {
 	static auto& dyn_comm_ = parent_.dyn_comm_;
-	static const vector<DynamixelAddress> addr_imu_list = {
+	static const vector<OpenCRAddress> addr_imu_list = {
 		addr_gx, addr_gy, addr_gz,
 		addr_ax, addr_ay, addr_az,
-		addr_quat_x, addr_quat_y, addr_quat_z, addr_quat_w
+		addr_quat_w, addr_quat_x, addr_quat_y, addr_quat_z
 	};
 
 	auto result = dyn_comm_.Read(addr_imu_list, imu_id);
@@ -121,30 +183,33 @@ bool DynamixelHandler::ImuOpenCR::ReadImuData(uint8_t imu_id) {
 
 	//* resultの内容を確認
 	if (verbose_read_) {
-		map<uint8_t, vector<int64_t>> id_data_map;
-		id_data_map[imu_id] = result;
-		char header[99]; sprintf(header, "OpenCR (id=[%d]) id read", imu_id);
-		auto ss = control_table_layout(2, id_data_map, addr_imu_list, string(header));
-		ROS_INFO_STREAM(ss);
-	};
+		const map<uint8_t, vector<int64_t>> id_data_map = {{imu_id, result}};
+		ROS_INFO_STREAM( "OpenCR IMU are read"
+						<< control_table_layout(parent_.width_log_, id_data_map, addr_imu_list) );
+	}
 
 	//* 読み取ったデータを反映
-	angular_velocity_ = {
-		(double)result[0] * res_gyro, 
+	const array<double, 3> angular_velocity_opencr = {
+		(double)result[0] * res_gyro,
 		(double)result[1] * res_gyro,
 		(double)result[2] * res_gyro
 	};
-	linear_acceleration_ = {
+	const array<double, 3> linear_acceleration_opencr = {
 		(double)result[3] * res_acc,
 		(double)result[4] * res_acc,
 		(double)result[5] * res_acc
 	};
-	orientation_ = {
-		int32_bits_to_float(static_cast<int32_t>(result[6])),
-		int32_bits_to_float(static_cast<int32_t>(result[7])),
-		int32_bits_to_float(static_cast<int32_t>(result[8])),
-		int32_bits_to_float(static_cast<int32_t>(result[9]))
-	};
+	angular_velocity_ = rotate_vector_by_quat(angular_velocity_opencr, quat_adjust_);
+	linear_acceleration_ = rotate_vector_by_quat(linear_acceleration_opencr, quat_adjust_);
+
+	// OpenCR quaternion is read in [w, x, y, z] order and converted to ROS [x, y, z, w].
+	const double q0_w = int32_bits_to_float(static_cast<int32_t>(result[6]));
+	const double q1_x = int32_bits_to_float(static_cast<int32_t>(result[7]));
+	const double q2_y = int32_bits_to_float(static_cast<int32_t>(result[8]));
+	const double q3_z = int32_bits_to_float(static_cast<int32_t>(result[9]));
+	const array<double, 4> orientation_opencr = normalize_quaternion({q1_x, q2_y, q3_z, q0_w});
+	orientation_ = normalize_quaternion(multiply_quaternion(orientation_opencr, quat_adjust_));
+
 	return true;
 }
 

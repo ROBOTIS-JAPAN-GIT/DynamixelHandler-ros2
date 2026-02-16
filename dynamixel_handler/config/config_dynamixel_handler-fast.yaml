@@ -57,6 +57,7 @@
             frame_id: base_link
             pub_ratio: 2
             model_number: 0
+            adjust/rpy_deg: [0.0, 0.0, 0.0] # OpenCR->robot の固定回転 [roll, pitch, yaw] [deg]
             verbose/callback: false
             verbose/write: false
             verbose/read: {raw: false, err: false}
