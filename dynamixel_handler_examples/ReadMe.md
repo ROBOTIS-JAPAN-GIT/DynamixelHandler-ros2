@@ -3,10 +3,19 @@
 ## Build
 
 ```bash 
-cd ~/ros2_ws
+cd <your_ros2_ws>
 colcon build --symlink-install --packages-up-to dynamixel_handler_examples
-source ~/.bashrc # 初回 build 時のみ
+source install/setup.bash
 ```
+
+各 `example` は `dynamixel_handler` ノードが起動済みであることを前提とする．
+
+## Abstract of each example
+
+- `example1`: 最小構成（関数スタイル）で `DxlCommandsX` と `DxlStates` の基本を確認
+- `example2`: `example1` と同じ内容を class スタイルで記述
+- `example3`: `DxlCommandsX`　の `velocity_control` と `limit.velocity_~` を使った運用例
+- `example4`: `DxlCommandsAll` の `goal.position_~` に加え `status.mode` を使った"全シリーズ共通で利用可能"な運用例 
 
 ## Pkg configuration
 
@@ -79,10 +88,24 @@ add_executable(example2
 
 ament_target_dependencies(example2 ${dependencies})
 
+add_executable(example3
+  src/example3.cpp
+)
+
+ament_target_dependencies(example3 ${dependencies})
+
+add_executable(example4
+  src/example4.cpp
+)
+
+ament_target_dependencies(example4 ${dependencies})
+
 ## Install
 install(TARGETS
   example1
   example2
+  example3
+  example4
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -116,7 +139,7 @@ ament_package()
 ### Launch
 
 ```bash
-ros2 launch dynamixel_handler_examples example1.launch.py
+ros2 launch dynamixel_handler_examples example1.xml
 ``` 
 上記コマンドで起動される `example1` node は，
   - トルクのオンオフ指令のpublish
@@ -202,10 +225,10 @@ int main(int argc, char **argv) {
             cmd.status.torque.push_back(true);
             // 電流を300mAに制限しつつ， +-45degで往復運動させる．
             auto target = (pos < 0) ? 45 : -45;
-            auto& cmd_ctrl = cmd.current_base_position_control; // 長いので参照を用いて省略
-            cmd_ctrl.id_list.push_back(id);
-            cmd_ctrl.current_ma.push_back(300/*mA*/);       // 目標電流，この値を超えないように制御される
-            cmd_ctrl.position_deg.push_back(target/*deg*/); // 目標角度
+            auto& cmd_cpos = cmd.current_base_position_control; // 長いので参照を用いて省略
+            cmd_cpos.id_list.push_back(id);
+            cmd_cpos.current_ma.push_back(300/*mA*/);       // 目標電流，この値を超えないように制御される
+            cmd_cpos.position_deg.push_back(target/*deg*/); // 目標角度
         }
         if (!cmd.status.id_list.empty()) pub_cmd->publish(cmd);
     });
@@ -225,7 +248,7 @@ int main(int argc, char **argv) {
 using namespace dynamixel_handler_msgs::msg; // 長くなるので名前空間を省略すると便利
 ```
 
-`dynaimxel/command/x` topic を publish するための publisher を作成．
+`dynamixel/commands/x` topic を publish するための publisher を作成．
 ```cpp
 auto pub_cmd = node->create_publisher<DxlCommandsX>("dynamixel/commands/x", 10);
 ```
@@ -243,15 +266,15 @@ for (const auto& [id, pos] : dxl_pos) {
     cmd.status.torque.push_back(true); // true でトルクオン, false でトルクオフ
     // 電流を300mAに制限しつつ， +-45degで往復運動させる．
     auto target = (pos < 0) ? 45 : -45;
-    auto& cmd_ctrl = cmd.current_base_position_control; // 長いので参照を用いて省略
-    cmd_ctrl.id_list.push_back(id);
-    cmd_ctrl.current_ma.push_back(300/*mA*/);       // 目標電流，この値を超えないように制御される
-    cmd_ctrl.position_deg.push_back(target/*deg*/); // 目標角度
+    auto& cmd_cpos = cmd.current_base_position_control; // 長いので参照を用いて省略
+    cmd_cpos.id_list.push_back(id);
+    cmd_cpos.current_ma.push_back(300/*mA*/);       // 目標電流，この値を超えないように制御される
+    cmd_cpos.position_deg.push_back(target/*deg*/); // 目標角度
 }
 if (!cmd.status.id_list.empty()) pub_cmd->publish(cmd);
 ```
 
-`auto& cmd_ctrl = cmd.current_base_position_control;`を`auto& cmd_ctrl = cmd.position_control;`に変更すると，`cmd_ctrl.current_ma.push_back(300/*mA*/);`の行でコンパイルエラーが発生する．   
+`auto& cmd_cpos = cmd.current_base_position_control;`を`auto& cmd_pos = cmd.position_control;`に変更すると，`cmd_pos.current_ma.push_back(300/*mA*/);`の行でコンパイルエラーが発生する．   
 すなわち，各制御モードごとにどの目標値が有効なのか暗記しなくても，コンパイラが教えてくれる．
 
 #### 現在情報の subscribe 部分について
@@ -323,3 +346,119 @@ auto timer = node->create_wall_timer(1.0s, [&](){ // 1.0sごとに実行され�
 ## Example 2
 
 基本は`example1`と同じだが，コードの記述形式が ROS 2 の推奨スタイルである class ベースに変更されている．
+
+### Launch
+
+```bash
+ros2 launch dynamixel_handler_examples example2.xml
+```
+
+## Example 3
+
+`example3` は，
+`/dynamixel/states` を見ながら `DxlCommandsX` を使って
+**速度制御を安全寄りに運用する最小例**である．
+
+### Launch
+
+```bash
+ros2 launch dynamixel_handler_examples example3.xml
+```
+
+### このサンプルで学べること
+
+- `status.torque` で初期設定する方法
+- `limit.velocity_limit_deg_s` で速度上限を設定する方法
+- `velocity_control` で速度指令を出す方法
+- `status.error` でエラー解除を指令する方法
+- `present.position_deg` を使って速度符号を切り替える方法
+
+> 注: このサンプルでは `status.mode` は送る必要はない．  
+> `velocity_control` をpublishすると，handler側で速度制御モードへ切り替わる実装になっているため．
+
+### 処理の流れ
+
+1. `/dynamixel/states` をsubscribeして，`present.id_list`（なければ `status.id_list`）のIDと現在角度を保存する
+2. 1台でもエラーがあれば，`active_ids` 全体へ `status.error = false` をpublishして解除を優先する
+3. 初回は `active_ids` 全IDの初期 `velocity_limit` が `/dynamixel/states` の `limit.velocity_limit_deg_s` で取れるまで待つ
+4. 初回だけ，`torque=true` + `velocity_limit=80.0` をまとめてpublishする
+5. 通常ループでは `velocity_control` をpublishし，現在角度がホーム位置の±40degを超えたら速度方向を反転する
+6. states更新が2秒以上止まったら，publishを止めて初期化フェーズに戻る
+7. ノード終了時（デストラクタ）に，変更した `velocity_limit` をキャッシュした初期値へ戻す
+
+### 初期化コマンドの例
+
+```cpp
+auto cmd = DxlCommandsX();
+cmd.status.id_list = active_ids;
+cmd.status.torque.assign(active_ids.size(), true);
+cmd.limit.id_list = active_ids;
+cmd.limit.velocity_limit_deg_s.assign(active_ids.size(), 80.0);
+pub_cmd_x_->publish(cmd);
+```
+
+### 速度制御コマンドの例
+
+```cpp
+auto cmd = DxlCommandsX();
+cmd.status.id_list = active_ids;
+cmd.status.torque.assign(active_ids.size(), true);
+cmd.velocity_control.id_list = active_ids;
+cmd.velocity_control.velocity_deg_s.push_back(60.0);   // or -60.0
+cmd.velocity_control.profile_acc_deg_ss.push_back(200.0);
+pub_cmd_x_->publish(cmd);
+```
+
+## Example 4
+
+`example4` は `DxlCommandsAll` の `goal` フィールドを使うサンプルで，
+**`status.mode` での明示初期化が必要なケース**を示す．
+
+### Launch
+
+```bash
+ros2 launch dynamixel_handler_examples example4.xml
+```
+
+### このサンプルで学べること
+
+- `dynamixel/commands/all` の `goal.*` を使って目標角を送る方法
+- `status.mode = CONTROL_POSITION` を初回にまとめて設定する方法
+- `status.error=true` の個体だけ先に解除してから通常制御に戻す方法
+- `present.position_deg` を使って，固定目標角 `+160/-160` を往復させる方法
+
+### 処理の流れ
+
+1. `/dynamixel/states` をsubscribeし，`status.id_list` のIDを保存しつつ `present.position_deg` で現在角度を更新する
+2. `status.error=true` のIDを `error_ids` として抽出し，先に `status.error=false` をpublishして解除する
+3. 初回だけ `status.mode=CONTROL_POSITION` と `status.torque=true` をpublishして初期化する
+4. 通常ループでは `goal.position_deg` をpublishし，`+160/-160` の固定目標を現在角度に応じて切り替える
+5. states更新が2秒止まったら初期化状態をリセットし，再初期化フェーズに戻る
+
+### 初期化コマンドの例
+
+```cpp
+auto cmd = DxlCommandsAll();
+cmd.status.id_list = active_ids;
+cmd.status.mode.assign(active_ids.size(), cmd.status.CONTROL_POSITION);
+cmd.status.torque.assign(active_ids.size(), true);
+pub_cmd_all_->publish(cmd);
+```
+
+### 目標角コマンドの例
+
+```cpp
+auto cmd = DxlCommandsAll();
+cmd.goal.id_list = active_ids;
+constexpr double kTargetForwardDeg = 160.0;
+constexpr double kTargetReverseDeg = -160.0;
+for (const auto id : active_ids) {
+  auto& servo = servos_[id];
+  if (servo.has_pos) {
+    if      (servo.pos_deg > kTargetForwardDeg - 5.0) servo.forward = false;
+    else if (servo.pos_deg < kTargetReverseDeg + 5.0) servo.forward = true;
+  }
+  cmd.goal.position_deg.push_back(servo.forward ? kTargetForwardDeg : kTargetReverseDeg);
+}
+pub_cmd_all_->publish(cmd);
+```
