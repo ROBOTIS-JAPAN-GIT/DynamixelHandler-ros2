@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(dynamixel_handler_msgs REQUIRED)
 
 
@@ -66,6 +67,7 @@ add_executable(
 	src/dynamixel_handler_dyn_interface_once.cpp
 
   src/optional_function/external_port.cpp
+  src/optional_function/imu_opencr.cpp
 
 	src/main.cpp
 )
@@ -83,6 +85,7 @@ ament_target_dependencies(
 	${PROJECT_NAME}
   rclcpp
   std_msgs
+  sensor_msgs
   dynamixel_handler_msgs
 )
 

@@ -1,5 +1,6 @@
 #include "dynamixel_handler.hpp"
 #include "optional_function/external_port.hpp"
+#include "optional_function/imu_opencr.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "myUtils/logging_like_ros1.hpp"
 #include "myUtils/make_iterator_convenient.hpp"
@@ -177,7 +178,10 @@ DynamixelHandler::DynamixelHandler() : Node("dynamixel_handler", rclcpp::NodeOpt
     if ( use_ex_port ) external_port_ = std::make_unique<ExternalPort>(*this);
     
     // bool use_imu_DXIMO; get_parameter_or("use/BTE098_DXMIO_with_IMU", use_imu_DXIMO, false);
-    // if ( use_imu_DXIMO ) imu_dximo_ = std::make_unique<DynamixelIMU_DXIMO>(*this);
+    // if ( use_imu_DXIMO ) imu_dximo_ = std::make_unique<ImuDXIMO>(*this);
+
+    bool use_imu_opencr; get_parameter_or("option/imu_opencr.use", use_imu_opencr, false);
+    if ( use_imu_opencr ) imu_opencr_ = std::make_unique<ImuOpenCR>(*this);
 
     ROS_INFO( "..... DynamixelHandler is initialized");
 }
@@ -198,6 +202,7 @@ void DynamixelHandler::MainLoop(){
 /* 処理時間時間の計測 */ auto s_total = system_clock::now();
     //* Additional function
     if (external_port_) external_port_->MainProccess();
+    if (imu_opencr_) imu_opencr_->MainProcess();
 
     //* topicをSubscribe & Dynamixelへ目標角をWrite
     SyncWriteGoal(goal_indice_write_, updated_id_goal_);

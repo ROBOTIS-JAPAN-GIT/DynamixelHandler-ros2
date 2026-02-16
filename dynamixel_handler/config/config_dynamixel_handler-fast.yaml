@@ -51,6 +51,17 @@
             verbose/callback: false
             verbose/write:    false
             verbose/read:     {raw: false, err: false}
+        option/imu_opencr:
+            use: false
+            opencr_id: 40
+            frame_id: base_link
+            pub_ratio: 2
+            model_number: 0
+            adjust/rpy_deg: [0.0, 0.0, 180.0] # OpenCR->robot の固定回転 [roll, pitch, yaw] [deg]
+            adjust/flip_z_axis: true # false: OpenCRのデフォルト左手系/ true: 右手系
+            verbose/callback: false
+            verbose/write: false
+            verbose/read: {raw: false, err: false}
     # デバッグ用
         max_log_width: 6
         verbose/callback: false
