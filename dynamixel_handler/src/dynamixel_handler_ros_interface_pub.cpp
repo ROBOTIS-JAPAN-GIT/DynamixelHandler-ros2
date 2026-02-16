@@ -1,9 +1,21 @@
 #include "dynamixel_handler.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_debug.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_error.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_gain.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_goal.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_limit.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_present.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_status.hpp"
 #include "myUtils/make_iterator_convenient.hpp"
 
 // 角度変換
 static constexpr double DEG = M_PI/180.0; // degを単位に持つ数字に掛けるとradになる
 double round4(double val) { return round(val*10000.0)/10000.0; }
+
+template <typename MsgT>
+static void publish_if(const rclcpp::PublisherBase::SharedPtr& pub, const MsgT& msg) {
+    if (pub) std::static_pointer_cast<rclcpp::Publisher<MsgT>>(pub)->publish(msg);
+}
 
 DynamixelStatus DynamixelHandler::BroadcastState_Status(){
     DynamixelStatus msg;
@@ -22,7 +34,7 @@ DynamixelStatus DynamixelHandler::BroadcastState_Status(){
             default:                                  msg.mode.push_back(""                               ); break;
         }
     }
-    if(pub_status_) pub_status_->publish(msg);
+    publish_if(pub_status_, msg);
     return msg;
 }
 
@@ -52,7 +64,7 @@ DynamixelPresent DynamixelHandler::BroadcastState_Present(){
             default:                                                                                 break;
         }
     }
-    if(pub_present_) pub_present_->publish(msg);
+    publish_if(pub_present_, msg);
     return msg;
 }
 
@@ -67,7 +79,7 @@ DynamixelError DynamixelHandler::BroadcastState_Error(){
         msg.electronical_shock.push_back(hardware_err_[id][ELECTRONICAL_SHOCK]);
         msg.overload.push_back          (hardware_err_[id][OVERLOAD          ]);
     }
-    if(pub_error_) pub_error_->publish(msg);
+    publish_if(pub_error_, msg);
     return msg;
 }
 
@@ -85,7 +97,7 @@ DynamixelLimit DynamixelHandler::BroadcastState_Limit(){
         msg.max_position_limit_deg.push_back   (round4(limit[MAX_POSITION_LIMIT]/DEG));
         msg.min_position_limit_deg.push_back   (round4(limit[MIN_POSITION_LIMIT]/DEG));
     }
-    if(pub_limit_) pub_limit_->publish(msg);
+    publish_if(pub_limit_, msg);
     return msg;
 }
 
@@ -101,7 +113,7 @@ DynamixelGain DynamixelHandler::BroadcastState_Gain(){
         msg.feedforward_2nd_gain_pulse.push_back(gain[FEEDFORWARD_ACC_GAIN]);
         msg.feedforward_1st_gain_pulse.push_back(gain[FEEDFORWARD_VEL_GAIN]);
     }
-    if(pub_gain_) pub_gain_->publish(msg);
+    publish_if(pub_gain_, msg);
     return msg;
 }
 
@@ -116,7 +128,7 @@ DynamixelGoal DynamixelHandler::BroadcastState_Goal(){
         msg.profile_acc_deg_ss.push_back(round4(goal[PROFILE_ACC  ]/DEG));
         msg.position_deg.push_back      (round4(goal[GOAL_POSITION]/DEG));
     }
-    if(pub_goal_) pub_goal_->publish(msg);
+    publish_if(pub_goal_, msg);
     return msg;
 }
 
@@ -143,6 +155,6 @@ DynamixelDebug DynamixelHandler::BroadcastDebug(){
         msg.position_deg.present.push_back  (round4(present_r_[id][PRESENT_POSITION]/DEG));
         msg.position_deg.goal.push_back     (round4(   goal_r_[id][GOAL_POSITION   ]/DEG));
     }
-    if(pub_debug_) pub_debug_->publish(msg);
+    publish_if(pub_debug_, msg);
     return msg;
 }

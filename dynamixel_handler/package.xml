@@ -8,14 +8,12 @@
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <build_depend>pybind11_vendor</build_depend>
+  <build_depend>python3-dev</build_depend>
 
   <depend>rclcpp</depend>
-  <build_depend>dynamixel_handler_msgs</build_depend>
-
-  <!-- ################################### -->
-
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
+  <depend>dynamixel_handler_msgs</depend>
+  <exec_depend>rclpy</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

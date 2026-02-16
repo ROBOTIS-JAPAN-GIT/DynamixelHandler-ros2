@@ -1,4 +1,28 @@
 #include "dynamixel_handler.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_commands_all.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_commands_p.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_commands_pro.hpp"
+#include "dynamixel_handler_msgs/msg/dxl_commands_x.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_p_current.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_p_extended_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_p_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_p_pwm.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_p_velocity.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_pro_current.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_pro_extended_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_pro_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_pro_velocity.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_current.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_current_base_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_extended_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_position.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_pwm.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_control_x_velocity.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_gain.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_goal.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_limit.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_shortcut.hpp"
+#include "dynamixel_handler_msgs/msg/dynamixel_status.hpp"
 #include "myUtils/formatting_output.hpp"
 #include "myUtils/logging_like_ros1.hpp"
 #include "myUtils/make_iterator_convenient.hpp"  // enum のインクリメントと， is_in 関数の実装
@@ -13,7 +37,7 @@ bool DynamixelHandler::check_series(id_t id, series_t series) {
     return series_[id] == series || series_[id] == SERIES_UNKNOWN; 
 }
 
-void DynamixelHandler::CallbackCmdsX(const DxlCommandsX::SharedPtr msg) {
+void DynamixelHandler::CallbackCmdsX(std::shared_ptr<DxlCommandsX> msg) {
     if ( verbose_callback_ ) ROS_INFO("=====================================");
     CallbackCmd_Status(msg->status); // Pシリーズ縛りを入れる
     CallbackCmd_X_Pwm(msg->pwm_control);
@@ -25,7 +49,7 @@ void DynamixelHandler::CallbackCmdsX(const DxlCommandsX::SharedPtr msg) {
     CallbackCmd_Gain  (msg->gain);  // Xシリーズ縛りを入れる
     CallbackCmd_Limit (msg->limit); // Xシリーズ縛りを入れる
 }
-void DynamixelHandler::CallbackCmdsP(const DxlCommandsP::SharedPtr msg) {
+void DynamixelHandler::CallbackCmdsP(std::shared_ptr<DxlCommandsP> msg) {
     if ( verbose_callback_ ) ROS_INFO("=====================================");
     CallbackCmd_Status(msg->status);  // Pシリーズ縛りを入れる
     CallbackCmd_P_Pwm(msg->pwm_control);
@@ -36,7 +60,7 @@ void DynamixelHandler::CallbackCmdsP(const DxlCommandsP::SharedPtr msg) {
     CallbackCmd_Gain  (msg->gain);  // Pシリーズ縛りを入れる
     CallbackCmd_Limit (msg->limit); // Pシリーズ縛りを入れる
 }
-void DynamixelHandler::CallbackCmdsPro(const DxlCommandsPro::SharedPtr msg) {
+void DynamixelHandler::CallbackCmdsPro(std::shared_ptr<DxlCommandsPro> msg) {
     if ( verbose_callback_ ) ROS_INFO("=====================================");
     CallbackCmd_Status(msg->status);  // Pシリーズ縛りを入れる
     CallbackCmd_Pro_Current(msg->current_control);
@@ -46,7 +70,7 @@ void DynamixelHandler::CallbackCmdsPro(const DxlCommandsPro::SharedPtr msg) {
     CallbackCmd_Gain  (msg->gain);  // Pシリーズ縛りを入れる
     CallbackCmd_Limit (msg->limit); // Pシリーズ縛りを入れる
 }
-void DynamixelHandler::CallbackCmdsAll(const DxlCommandsAll::SharedPtr msg) {
+void DynamixelHandler::CallbackCmdsAll(std::shared_ptr<DxlCommandsAll> msg) {
     if ( verbose_callback_ ) ROS_INFO("=====================================");
     CallbackCmd_Status(msg->status);
     CallbackCmd_Goal  (msg->goal);

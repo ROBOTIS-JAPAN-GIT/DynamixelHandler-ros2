@@ -62,7 +62,7 @@
             verbose/read: {raw: false, err: false}
     # デバッグ用
         max_log_width: 6
-        verbose/callback: true
+        verbose/callback: false
         verbose/write_status: false
         verbose/write_goal:   false
         verbose/write_gain:   false
