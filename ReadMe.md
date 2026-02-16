@@ -11,6 +11,7 @@ X, P, Proシリーズに対応，X320シリーズ，Yシリーズは順次対応
   - [How to use](#how-to-use)
   - [Topics](#topics)
   - [Parameters](#parameters)
+  - [Optional機能](#optional機能)
   - [各種情報の分類と Control Table との対応](#各種情報の分類と-control-table-との対応)
   - [Baudrateの一括変更](#baudrateの一括変更)
   - [Trouble Shooting](#trouble-shooting)
@@ -137,8 +138,8 @@ source ~/ros2_ws/install/setup.bash # 初回 build 時のみ
 
 ## How to use
 
-- コマンドラインを用いた `dynaimxel_handler`ノードの動作確認
-- 他の制御用パッケージと連携した `dynaimxel_handler`ノードの利用
+- コマンドラインを用いた `dynamixel_handler`ノードの動作確認
+- 他の制御用パッケージと連携した `dynamixel_handler`ノードの利用
 
 上記を達成するための手順を以下に示す．
 
@@ -146,7 +147,7 @@ source ~/ros2_ws/install/setup.bash # 初回 build 時のみ
 
 Dynamixel Wizardでモータの動作確認ができる程度の状態を想定．
 
-- Dynaimixel をディジーチェーンにしてU2D2経由でUSB接続されていること．
+- Dynamixel をディジーチェーンにしてU2D2経由でUSB接続されていること．
 - ID に重複がないように事前に設定されていること.
 - baudrate が全て統一されていること．
 
@@ -158,7 +159,7 @@ Dynamixel Wizardでモータの動作確認ができる程度の状態を想定�
 
 #### 2-1. 自分の環境とconfigの設定を合わせる
 リポジトリ内の`dynamixel_handler/config/config_dynamixel_handler.yaml`の該当部分を編集し，保存．   
-以下は baudrate: $57600$ かつ device name: `/dec/ttyUSB0`かつ latency timer: $16$ ms の場合
+以下は baudrate: $57600$ かつ device name: `/dev/ttyUSB0`かつ latency timer: $16$ ms の場合
 ```yaml
 # config/config_dynamixel_handler.yaml
 /**:
@@ -212,7 +213,7 @@ ros2 launch dynamixel_handler dynamixel_handler_launch.xml
 
 topic の詳細については [Topic](#subscribed-topics) の章を参照．
 
-以下の例では ros2 topic コマンドを利用して topic をコマンドラインから pulish しているが，別のノードを作成して同様の topic を publish することでも動作を制御できる．
+以下の例では ros2 topic コマンドを利用して topic をコマンドラインから publish しているが，別のノードを作成して同様の topic を publish することでも動作を制御できる．
 
 #### 例：ID:5の Dynamixel(Xシリーズ) を位置制御モードで角度を90degに制御
 
@@ -350,13 +351,13 @@ ros2 run dynamixel_handler dynamixel_handler --ros-args -p init/dummy_servo_list
 
 ## Topics
 
-### Summay
+### Summary
 
 一般的なユースケースでは以下の2つの topic を利用すれば十分である． 
 - `/dynamixel/states`([dynamixel_handler_msgs::msg::DxlStates](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlstates-type))   
-  連結したサーボすべての状態をまとめた topic, `dynaimxel_handler`から publish される．
+  連結したサーボすべての状態をまとめた topic, `dynamixel_handler`から publish される．
 - `/dynamixel/commands/x`([dynamixel_handler_msgs::msg::DxlCommandsX](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandsx-type))   
-  Xシリーズのサーボを制御するための topic, `dynaimxel_handler`に subscribe される．
+  Xシリーズのサーボを制御するための topic, `dynamixel_handler`に subscribe される．
 
 ヘッダーファイルや型など，具体的な使い方ついては，[`dynamixel_handler_examples`](./dynamixel_handler_examples) を参照されたし．    
 型そのものについての詳細は[メッセージの定義](./dynamixel_handler_msgs/ReadMe.md)を参照のこと．
@@ -368,7 +369,7 @@ ros2 run dynamixel_handler dynamixel_handler --ros-args -p init/dummy_servo_list
 
  - `/dynamixel/commands/p` ([`dynamixel_handler_msgs::msg::DxlCommandsP`](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandsp-type))   
    Pシリーズのサーボを制御するための topic.
- - `/dynamixel/commands/pro` ([`Dxdynamixel_handler_msgs::msg::lCommandsPro`](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandspro-type))   
+ - `/dynamixel/commands/pro` ([`dynamixel_handler_msgs::msg::DxlCommandsPro`](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandspro-type))   
    Proシリーズのサーボを制御するための topic.
  - `/dynamixel/commands/all` ([`dynamixel_handler_msgs::msg::DxlCommandsAll`](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandsall-type))   
    シリーズに関わらずすべてのサーボを制御するための topic.
@@ -428,9 +429,9 @@ Operating mode list
 ##### `present` field ([DynamixelPresent型](./dynamixel_handler_msgs#dynamixelpresent-type))
 
 高速化のため，位置，速度などの要素個別で読み取り周期`pub_ratio/present.{~}`を設定できる．   
-そのため最新のデータと非最新のデータが混在することになるが，非最新のデータを publish するかどうかは `pub_outdated_present`パラメータで設定可能．
-- `pub_outdated_present: true` の場合: 非最新のデータも含めて publish されるため，`id_list`フィールドの長さとそれ以外の field の長さは必ず一致する．  
-- `pub_outdated_present: false` の場合は: 非最新のデータは publish されないため，"サーボの数と同じ長さの配列" の field と "空配列" の field が混在することになる．   
+そのため最新のデータと非最新のデータが混在することになるが，非最新のデータを publish するかどうかは `pub_outdated_present_value` パラメータで設定可能．
+- `pub_outdated_present_value: true` の場合: 非最新のデータも含めて publish されるため，`id_list`フィールドの長さとそれ以外の field の長さは必ず一致する．  
+- `pub_outdated_present_value: false` の場合: 非最新のデータは publish されないため，"サーボの数と同じ長さの配列" の field と "空配列" の field が混在することになる．   
 
 | Field                    | Type        | Description                                         | Note                                              |
 |--------------------------|-------------|-----------------------------------------------------|---------------------------------------------------|
@@ -444,8 +445,8 @@ Operating mode list
 | `input_voltage_v`        | `float64[]` | 現在の入力電圧 (V)                                    |
 | `temperature_degc`       | `float64[]` | 現在の温度 (°C)                                     |
 
-  `pub_ratio/present` に `{current_ma: 1, velocity_deg_s: 1, position_deg: 1}`　が設定されており，その他の`pub_ratio/present.{~}`が `0` に設定されている場合の出力例を示す．
-  `pub_outdated_present` はデフォルトで `true`なので読み取られなかったデータも含め全ての field が埋まる．   
+  `pub_ratio/present` に `{current_ma: 1, velocity_deg_s: 1, position_deg: 1}` が設定されており，その他の `pub_ratio/present.{~}` が `0` に設定されている場合の出力例を示す．
+  `pub_outdated_present_value` はデフォルトで `true` なので読み取られなかったデータも含め全ての field が埋まる．   
   ```yaml
   $ ros2 topic echo --flow-style /dynamixel/state/present 
   present: # DynamixelPresent型, pub_ratio/present.~ に一回 read され，1要素でも読み取ったら埋める
@@ -565,30 +566,6 @@ Operating mode list
 
 </details>
 
-#### `/dynamixel/external_port/read` ([`DxlExternalPort`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlexternalport-type))    
-  XH540とP・Proシリーズが持つExternal Port機能を扱うための topic．   
-  `option/external_port.use` パラメータが`true`に設定されている場合にのみ利用可能．
-  `option/external_port.pub_ratio` パラメータの `mode` または `data` の小さい方の周期で読み取られ，読み取られた場合のみ publish される．  
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `stamp` | `builtin_interfaces/Time` | データが読み取れた時刻 |
-| `id_list` | `uint16[]` | サーボのID |
-| `port` | `uint16[]` | External Portのポート番号の配列 |
-| `mode` | `string[]` | ポートのモードの配列  (以下の External port mode list を参照)|
-| `data` |  `int16[]` | ポートのデータの配列  (analog: 0 ~ 4096, digital: 0 or 1, unset: -1)|
-
-<details>
-<summary> External port mode list </summary>
-
-- `"a_in"` = analog in : アナログ入力モードで，0-4096の値を読み取る．
-- `"d_out"` = digital out : デジタル出力モードで，High or Low の出力状態を表す．
-- `"d_in_pu"` = digital in (pull up) : プルアップ抵抗付きのデジタル入力モードで，0または1の値を読み取る．
-- `"d_in_pd"` = digital in (pull down) : プルダウン抵抗付きのデジタル入力モードで，0または1の値を読み取る．
-- `"unset"` : `/dynamixel/external_port/read` topic でポートを設定していない状態．
-
-</details>
-
 #### `/dynamixel/debug` ([`DynamixelDebug`型](./dynamixel_handler_msgs#dynamixeldebug-type))
   サーボが動作しないときにコマンドラインで状況を確認するためのデバッグ用の topic．  
   現在値と目標値の更新タイミングが異なるので注意．
@@ -596,31 +573,31 @@ Operating mode list
 | Field                  | Sub field   | Type | Description                                                                 |
 |------------------------|-------------|------|-----------------------------------------------------------------------|
 | `status`               |             | `DynamixelStatus` | サーボの基本状態 (トルク, エラー有無, ping, 制御モード)．`pub_ratio/status` 周期でread． |
-| `current_ma`           | `present`   | `float64[]` | 現在の電流値 (mA)．`pub_ratio/present.current_ma` 周期でread．                      |
+| `current_ma`           | `present`   | `float64[]` | 現在の電流値 (mA)．`pub_ratio/present.current` 周期でread．                      |
 |            | `goal`      | `float64[]` | 目標電流値 (mA)．`pub_ratio/goal` 周期でread．                          |
-| `velocity_deg_s`       | `present`   | `float64[]` | 現在の速度 (deg/s)．`pub_ratio/present.velocity_deg_s` 周期でread．                  |
+| `velocity_deg_s`       | `present`   | `float64[]` | 現在の速度 (deg/s)．`pub_ratio/present.velocity` 周期でread．                  |
 |        | `goal`      | `float64[]` | 目標速度 (deg/s)．`pub_ratio/goal` 周期でread．                        |
-| `position_deg`         | `present`   | `float64[]` | 現在の位置 (deg)．`pub_ratio/present.position_deg` 周期でread．                        |
+| `position_deg`         | `present`   | `float64[]` | 現在の位置 (deg)．`pub_ratio/present.position` 周期でread．                        |
 |          | `goal`      | `float64[]` | 目標位置 (deg)．`pub_ratio/goal` 周期でread．                            |
 
 
 #### `/dynamixel/state/status` ([`DynamixelStatus`型](./dynamixel_handler_msgs#dynamixelstatus-type))  
-/dyanmixel/states`の`status`フィールドを単独で publish する topic．  
+`/dynamixel/states` の `status` フィールドを単独で publish する topic．  
 
 #### `/dynamixel/state/present` ([`DynamixelPresent`型](./dynamixel_handler_msgs#dynamixelpresent-type))  
-/dyanmixel/states`の`present`フィールドを単独で publish する topic．
+`/dynamixel/states` の `present` フィールドを単独で publish する topic．
 
 #### `/dynamixel/state/goal` ([`DynamixelGoal`型](./dynamixel_handler_msgs#dynamixelgoal-type))  
-/dyanmixel/states`の`goal`フィールドを単独で publish する topic．
+`/dynamixel/states` の `goal` フィールドを単独で publish する topic．
 
 #### `/dynamixel/state/gain` ([`DynamixelGain`型](./dynamixel_handler_msgs#dynamixellimit-type))  
-/dyanmixel/states`の`gain`フィールドを単独で publish する topic．
+`/dynamixel/states` の `gain` フィールドを単独で publish する topic．
 
 #### `/dynamixel/state/limit` ([`DynamixelLimit`型](./dynamixel_handler_msgs#dynamixellimit-type))  
-/dyanmixel/states`の`limit`フィールドを単独で publish する topic．
+`/dynamixel/states` の `limit` フィールドを単独で publish する topic．
 
 #### `/dynamixel/state/error` ([`DynamixelError`型](./dynamixel_handler_msgs#dynamixelerror-type))  
-/dyanmixel/states`の`error`フィールドを単独で publish する topic．
+`/dynamixel/states` の `error` フィールドを単独で publish する topic．
 
 
 ### Subscribed Topics
@@ -988,12 +965,12 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 
 | Field                       | Type        | Description                                  | Note |
 |-----------------------------|-------------|----------------------------------------------|------|
-| `id_list`                   | `uint16[]`   | 適用するサーボIDのリスト.                   | |
-| `temperature_limit_degc`    | `float64[]`   | 温度上限 (°C).                 | |
-| `max_voltage_limit_v`       | `float64[]` | 入力電圧上限 (V).              | |
-| `min_voltage_limit_v`       | `float64[]` | 入力電圧下限 (V).              | | 
-| `pwm_limit_percent`         | `float64[]` | PWM上限 (%)                     | Proシリーズは非対応 |
-| `current_limit_ma`          | `float64[]` | 電流値上限 (mA).                | |
+| `id_list`                   | `uint16[]`  | 適用するサーボIDのリスト.         | |
+| `temperature_limit_degc`    | `float64[]` | 温度上限 (°C).               | |
+| `max_voltage_limit_v`       | `float64[]` | 入力電圧上限 (V).            | |
+| `min_voltage_limit_v`       | `float64[]` | 入力電圧下限 (V).            | | 
+| `pwm_limit_percent`         | `float64[]` | PWM上限 (%)                 | Proシリーズは非対応 |
+| `current_limit_ma`          | `float64[]` | 電流値上限 (mA).             | |
 | `acceleration_limit_deg_ss` | `float64[]` | 加速度上限 (deg/s^2).        | Xシリーズは非対応 |
 | `velocity_limit_deg_s`      | `float64[]` | 速度上限 (deg/s).            | |
 | `max_position_limit_deg`    | `float64[]` | 位置上限 (deg).              | | 
@@ -1011,19 +988,6 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 | `# 未実装につき略` |      |             |
 
 </details>
-
-#### `/dynamixel/external_port/write` ([`DxlExternalPort`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlexternalport-type))    
-XH540とP・Proシリーズが持つExternal Port機能を扱うための topic．  
-サーボのIDとポート番号の組で  External Port を指定するため，`id_list` と `port` の長さは一致する必要がある．
-`mode` と `data` を同時に指定する必要はないが，指定した要素は `id_list` と長さが一致する必要がある．
-
-| Field     | Type      | Description                                                                 |
-|-----------|-----------|-----------------------------------------------------------------------------|
-| `stamp`  | `builtin_interfaces/Time` | メッセージのタイムスタンプ．無効．                                    |
-| `id_list` | `uint16[]` | 適用するサーボのIDリスト．複数指定可能．                                          |
-| `port`    | `uint16[]`   | External Portのポート番号 (X: [1, 2, 3], P/Pro: [1, 2, 3, 4]) |
-| `mode`    | `string[]`   | ポートのモード．文字列で指定 (詳細は[`DxlExternalPort`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlexternalport-type)の定数を参照) |
-| `data`    |  `int16[]`  | ポートのデータ．モードが digital out の場合のみ有効．(0: Low, 1: High)|
 
 #### `/dynamixel/shortcut` ([`DynamixelShortcut`型](./dynamixel_handler_msgs#dynamixelshortcut-type))    
  Dynamixelの起動、停止、エラー解除などのショートカットコマンド  
@@ -1161,23 +1125,24 @@ XH540とP・Proシリーズが持つExternal Port機能を扱うための topic�
   verbose_ratio: 300 # メインループのlog出力の割合(処理時間，通信の成功率), ex 100なら100回に1回出力
   pub_outdated_present_value: true # 最新でないpresent_XXXをpublishするかどうか. false ならば 直近のループでreadした Present の要素のみmsgに含められる．
   pub_ratio/present: # present_XXXを読み取り，/dynamixel/state/present トピックをpublishする割合
-      pwm:                 0 # この回数に一回present_pwmを読み取る, 0=初回のみ
-      current:             2 # この回数に一回present_currentを読み取る, 0=初回のみ
-      velocity:            2 # この回数に一回present_velocityを読み取る, 0=初回のみ
-      position:            2 # この回数に一回present_positionを読み取る, 0=初回のみ
-      velocity_trajectory: 0 # この回数に一回velocity_trajectoryを読み取る, 0=初回のみ
-      position_trajectory: 0 # この回数に一回position_trajectoryを読み取る, 0=初回のみ
-      input_voltage:      29 # この回数に一回present_input_voltageを読み取る, 0=初回のみ
-      temperature:        29 # この回数に一回present_temperatureを読み取る, 0=初回のみ
-  pub_ratio/status: 47 # この回数に一回 Status を読み取り，/dynamixel/state/status トピックをpublishする, 0=初回のみ
-  pub_ratio/goal: 11  # この回数に一回 Goal を読み取り，/dynamixel/state/goal トピックをpublishする, 0=初回のみ
-  pub_ratio/gain: 101 # この回数に一回 Gain を読み取り，/dynamixel/state/gain トピックをpublishする, 0=初回のみ
-  pub_ratio/limit: 307 # この回数に一回 Limit を読み取り，/dynamixel/state/limit トピックをpublishする, 0=初回のみ
-  pub_ratio/error: 53 # この回数に一回 Hardware error を読み取り，/dynamixel/state/error トピックをpublishする, 0=初回のみ
+      pwm:                 0 # この回数に一回present_pwmを読み取る, 0=メインループで読み取らない
+      current:             2 # この回数に一回present_currentを読み取る, 0=メインループで読み取らない
+      velocity:            2 # この回数に一回present_velocityを読み取る, 0=メインループで読み取らない
+      position:            2 # この回数に一回present_positionを読み取る, 0=メインループで読み取らない
+      velocity_trajectory: 0 # この回数に一回velocity_trajectoryを読み取る, 0=メインループで読み取らない
+      position_trajectory: 0 # この回数に一回position_trajectoryを読み取る, 0=メインループで読み取らない
+      input_voltage:      29 # この回数に一回present_input_voltageを読み取る, 0=メインループで読み取らない
+      temperature:        29 # この回数に一回present_temperatureを読み取る, 0=メインループで読み取らない
+  pub_ratio/status: 47 # この回数に一回 Status を読み取り，/dynamixel/state/status トピックをpublishする, 0=メインループで読み取らない
+  pub_ratio/goal: 11  # この回数に一回 Goal を読み取り，/dynamixel/state/goal トピックをpublishする, 0=メインループで読み取らない
+  pub_ratio/gain: 101 # この回数に一回 Gain を読み取り，/dynamixel/state/gain トピックをpublishする, 0=メインループで読み取らない
+  pub_ratio/limit: 307 # この回数に一回 Limit を読み取り，/dynamixel/state/limit トピックをpublishする, 0=メインループで読み取らない
+  pub_ratio/error: 53 # この回数に一回 Hardware error を読み取り，/dynamixel/state/error トピックをpublishする, 0=メインループで読み取らない
 ```
 `pub_ratio/{~}`の各情報 (status, present, goal, gain, limit, error) は topic 名と対応．   
 read と publish 周期は`loop_rate`を`pub_ratio/{~}`で割った値となる．   
 > 例: `loop_rate`= 100, `pub_ratio/status`= 47 の時 100/47 ≃ 2Hz．   
+> `pub_ratio` が `0` の項目はメインループで read されない（初期化時の値は保持される）．
 
 デフォルト値を素数にしているのは, serial read のタイミングが被って1ループの処理時間が長くなるのを防ぐため．
 
@@ -1235,20 +1200,121 @@ present値のみ高速化のために各アドレス(pwm, current, ... , tempera
 
 `no_use_command_line`が`true`の場合は，コマンドライン用の topic を publish & subscribe しないので，`$ ros2 topic list`がすっきりする．起動時にDDSがネットワークにかける負荷も小さくなるかも？(未確認)
 
+***************************
 
-### Optional機能
-Dynamixelの動作に直接関連しない，Optional 機能の設定．
-現在は特定のモデルに存在する External Port の設定のみ．Dynamixelプロトコル対応のIMUなどの機能を追加する予定．
+## Optional機能
+
+Dynamixel本体の標準的な制御（status/goal/present/gain/limit/error）とは独立した拡張機能．  
+現状は `External Port` と `OpenCR IMU` に対応している．
+
+### 概要
+
+| Feature | 有効化パラメータ | Publish | Subscribe | 初期化時の挙動 |
+|---|---|---|---|---|
+| External Port | `option/external_port.use` | `dynamixel/external_port/read` | `dynamixel/external_port/write` | 対象サーボが無くても継続 |
+| OpenCR IMU | `option/imu_opencr.use` | `dynamixel/imu/raw` | `dynamixel/imu/calibration_gyro` | WARNを出して継続 |
+
+### External Port
+
+X540シリーズと P/Pro シリーズの外部ポート機能を扱う optional 機能．  
+利用する場合は `option/external_port.use` を `true` に設定する．
+
 ```yaml
-# Optonal機能
-  option/external_port:
-      use : false # External Portの機能を使うかどうか
-      pub_ratio/data : 2   # この回数に一回 Data を読み取る.
-      pub_ratio/mode : 100 # この回数に一回 Mode を読み取る, ROM値なので大きくても問題ない．
-      verbose/callback: false
-      verbose/write:    false
-      verbose/read:     {raw: false, err: false}
+option/external_port:
+    use: false
+    pub_ratio/data: 10  # Dataを読む周期（loop回数基準）
+    pub_ratio/mode: 100 # Modeを読む周期（loop回数基準）
+    verbose/callback: false
+    verbose/write: false
+    verbose/read: {raw: false, err: false}
 ```
+
+- Publish: `dynamixel/external_port/read`
+- Subscribe: `dynamixel/external_port/write`
+- Data項目: `external_port_data_{1,2,...}`
+- Mode項目: `external_port_mode_{1,2,...}`
+- デフォルトでは読み込み対象IDは空で，`/dynamixel/external_port/write` で指定されたIDのみを読む
+
+#### `/dynamixel/external_port/read` ([`DxlExternalPort`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlexternalport-type))    
+
+`option/external_port.pub_ratio/mode` と `option/external_port.pub_ratio/data` のいずれかで読み取りが発生したループで publish される．
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `stamp` | `builtin_interfaces/Time` | データが読み取れた時刻 |
+| `id_list` | `uint16[]` | サーボのID |
+| `port` | `uint16[]` | External Portのポート番号 |
+| `mode` | `string[]` | ポートのモード |
+| `data` | `int16[]` | ポートのデータ (`analog`: 0~4096, `digital`: 0/1, `unset`: -1) |
+
+mode 文字列の意味:
+
+- `"a_in"`: analog in
+- `"d_out"`: digital out
+- `"d_in_pu"`: digital in (pull up)
+- `"d_in_pd"`: digital in (pull down)
+- `"unset"`: ポート未設定
+
+#### `/dynamixel/external_port/write` ([`DxlExternalPort`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlexternalport-type))    
+
+サーボのIDとポート番号の組で External Port を指定する．  
+`id_list` と `port` の長さは一致が必要で，`mode` / `data` は必要な方だけ指定できる（指定した場合は `id_list` と同じ長さが必要）．
+
+| Field | Type | Description |
+|---|---|---|
+| `stamp` | `builtin_interfaces/Time` | メッセージのタイムスタンプ（未使用） |
+| `id_list` | `uint16[]` | 適用するサーボID |
+| `port` | `uint16[]` | ポート番号 (X: 1-3, P/Pro: 1-4) |
+| `mode` | `string[]` | ポートのモード文字列 |
+| `data` | `int16[]` | ポートのデータ（`digital out`時に0/1を使用） |
+
+### OpenCR IMU
+
+OpenCR上のIMUを `sensor_msgs/msg/Imu` として publish する optional 機能．
+
+```yaml
+option/imu_opencr:
+    use: false
+    opencr_id: 40
+    frame_id: base_link
+    pub_ratio: 2
+    model_number: 0
+    adjust/rpy_deg: [0.0, 0.0, 180.0]
+    adjust/flip_z_axis: true
+    verbose/callback: false
+    verbose/write: false
+    verbose/read: {raw: false, err: false}
+```
+
+- Publish: `dynamixel/imu/raw` (`sensor_msgs/msg/Imu`)
+- Subscribe: `dynamixel/imu/calibration_gyro` (`std_msgs/msg/Empty`)
+- 起動時に `opencr_id` への `ping` と `model_number` を確認し，不一致時はWARNを出して機能を無効化
+- `calibration_gyro` 受信時はOpenCRへ校正コマンドを書き込み，現状実装では5秒待機
+- `adjust/rpy_deg` と `adjust/flip_z_axis` で座標補正を適用
+- OpenCRファームのControl Tableアドレスと `src/optional_function/imu_opencr.cpp` は必ず対応させること
+
+#### `dynamixel/imu/raw` (`sensor_msgs/msg/Imu`)
+
+`loop_rate` に対して `pub_ratio` ごとに read を実行し，read 成功時のみ publish する．
+
+| Field | Type | Description |
+|---|---|---|
+| `header.stamp` | `builtin_interfaces/Time` | publish時刻 (`now`) |
+| `header.frame_id` | `string` | `option/imu_opencr.frame_id` |
+| `orientation.{x,y,z,w}` | `float64` | 補正後クォータニオン（正規化済み） |
+| `angular_velocity.{x,y,z}` | `float64` | 補正後角速度 |
+| `linear_acceleration.{x,y,z}` | `float64` | 補正後加速度 |
+| `orientation_covariance` | `float64[9]` | 現状は未設定（デフォルト値） |
+| `angular_velocity_covariance` | `float64[9]` | 現状は未設定（デフォルト値） |
+| `linear_acceleration_covariance` | `float64[9]` | 現状は未設定（デフォルト値） |
+
+#### `dynamixel/imu/calibration_gyro` (`std_msgs/msg/Empty`)
+
+受信時に `opencr_id` 宛てにジャイロ校正コマンドを書き込む．  
+メッセージ本体のフィールドはなく，トリガー用途のみで使う．  
+コマンド送信後は現状実装で5秒待機する．
+
+
 
 ***************************
 
@@ -1262,9 +1328,9 @@ Dynamixelの動作に直接関連しない，Optional 機能の設定．
  - (error)        : Control table の情報ではないが，statusとして扱っている．何らかのエラーを持っているかどうか．
  - operating_mode : サーボの制御モード，PWM, 電流制御, 速度制御, 位置制御, 拡張位置制御, 電流制御付き位置制御の6つのモードがある．
  
-##### Subscrib / Write  
+##### Subscribe / Write  
 Xシリーズの場合，`/dynamixel/commands/x`の`status`フィールド or `/dynamixel/command/status`によって設定され，`loop_rate`の周期で書き込まれる．
-operationg_modeのみ，対応する`/dynamixel/command/x/{~}_control`系の topic を subscribe することでも自動で設定される． 
+operating_modeのみ，対応する`/dynamixel/command/x/{~}_control`系の topic を subscribe することでも自動で設定される． 
 ##### Publish / Read  
 `loop_rate`の内`pub_ratio/status`毎に1回の周期で読みだされ，`/dynamixel/states`の`status`フィールド and `/dynamixel/state/status`として publish される．
 
@@ -1277,7 +1343,7 @@ operationg_modeのみ，対応する`/dynamixel/command/x/{~}_control`系の top
    - (goal_acceleration): Proシリーズでの表記.
  - profile_velocity     : 目標速度値, 位置制御モードと拡張位置制御モード，電流制御付き位置制御で有効 (Proシリーズにはないが，goal_velocityで代用できる)
 
-##### Subscrib / Write
+##### Subscribe / Write
 Xシリーズの場合，`/dynamixel/commands/x`or `/dynamixel/command/x/{~}_control`系の topic  or `/dynamixel/command/goal`によって設定され，`loop_rate`の周期で書き込まれる．   
 ##### Publish / Read
 `loop_rate`の内`pub_ratio/goal`毎に1回の周期で読みだされ，`/dynamixel/states`の`goal`フィールド and `/dynamixel/state/goal`として publish される．
@@ -1292,7 +1358,7 @@ Xシリーズの場合，`/dynamixel/commands/x`or `/dynamixel/command/x/{~}_con
  - present_input_voltage: 現在の入力電圧
  - present_temperature  : 現在の温度
 
-##### Subscrib / Write
+##### Subscribe / Write
 書き込みは不可．   
 ##### Publish / Read
 各アドレスの情報は`loop_rate`の内`pub_ratio/present.{~}`に一回の周期で読みだされる．   
@@ -1307,7 +1373,7 @@ Xシリーズの場合，`/dynamixel/commands/x`or `/dynamixel/command/x/{~}_con
  - feedforward_acc_gain  :　Proシリーズでは無効
  - feedforward_vel_gain  :　Proシリーズでは無効
   
-##### Subscrib / Write
+##### Subscribe / Write
 Xシリーズの場合，`/dynamixel/commands/x`の`gain`フィールド or `/dynamixel/command/gain`によって設定され，`loop_rate`の周期で書き込まれる．
 ##### Publish / Read
 `loop_rate`の内`pub_ratio/gain`毎に1回の周期で読みだされ，`/dynamixel/states`の`gain`フィールド and `/dynamixel/state/gain`として publish される．
@@ -1326,7 +1392,7 @@ Xシリーズの場合，`/dynamixel/commands/x`の`gain`フィールド or `/dy
  - max_position_limit : 位置制御モードでの最大角度 
  - min_position_limit : 位置制御モードでの最小角度
   
-##### Subscrib / Write
+##### Subscribe / Write
 Xシリーズの場合，`/dynamixel/commands/x`の`limit`フィールド or `/dynamixel/command/limit`によって設定され，`loop_rate`の周期で書き込まれる．
 ##### Publish / Read
 `loop_rate`の内`pub_ratio/limit`毎に1回の周期で読みだされ，`/dynamixel/states`の`limit`フィールド and `/dynamixel/state/limit`として publish される．
@@ -1344,7 +1410,7 @@ Xシリーズの場合，`/dynamixel/commands/x`の`limit`フィールド or `/d
    - electronical_shock : 電子回路内での異常
    - overload           : 過負荷
 
-##### Subscrib / Write
+##### Subscribe / Write
 書き込みは不可．  
 ##### Publish / Read
 `loop_rate`の内`pub_ratio/error`毎に1回の周期で読みだされ，`/dynamixel/states`の`error`フィールド and `/dynamixel/state/error`として publish される．
@@ -1357,7 +1423,7 @@ Xシリーズの場合，`/dynamixel/commands/x`の`limit`フィールド or `/d
  - startup_configuration  : not support, buckupがあるときPIDゲインやprofile系の値を自動で復元してくれるが，PIDのデフォルト値がモードによって異なる問題があるので使わない．
  - shutdown               : 
  - status_return_level    : not support, 常に2を前提とする
- - bus_watchbdog          : 指定時間通信が行われない場合に動作を停止する(トルクOFFとは異なる)，この pkg では node kill 時と通信断絶時にサーボを自動停止させる機能に用いられる．(Proシリーズにはない)
+- bus_watchdog          : 指定時間通信が行われない場合に動作を停止する(トルクOFFとは異なる)，この pkg では node kill 時と通信断絶時にサーボを自動停止させる機能に用いられる．(Proシリーズにはない)
  - led                    : 
  - registered_instruction : 
  - realtime_tick          : 
@@ -1371,28 +1437,6 @@ Xシリーズの場合，`/dynamixel/commands/x`の`limit`フィールド or `/d
 > しかし，位置制御系のモードかつ，homing_offset が設定されている状態でこの動作停止処理が走るとなぜか homing_offsetだけ回転する．
 > firmwareのバグの模様，バージョンによってはこの問題が解消されているかもしれないが，危険なので位置制御系のモードで bus_watchdog を使うのは避けるべき．
 > ということで `term/servo_auto_stop`が`true`かつ，PWM・電流・速度制御モードの場合のみ，$500$ms で停止するように bus_watchdog を設定し，それ以外のモードでは bus_watchdog は $0$ として利用しないようにしている．
-
-### External Ports
- - external_port_data_{1,2,...} : 外部ポートのデータ，末尾の数字がポート番号に対応(Xシリーズは1,2,3，Pシリーズは1,2,3,4).
- - external_port_mode_{1,2,...} : 各外部ポートのモード. 以下の4つのmodeがある．
-     - analog input : 0.0v ~ 3.3v のアナログ値を読み取り 0 ~ 4095 の値としてdataに格納する
-     - digital output : data の値 0 or 1 に応じて 0v or $3.3$v を出力する
-     - digital input (pullup) : プルアップされたデジタル値を読み取り，1 or 0 としてdataに格納する
-     - digital input (pulldown) : プルダウンされたデジタル値を読み取る，1 or 0 としてdataに格納する
-
-> [!note]
-> X540シリーズとP・Proシリーズのみに搭載される機能．
-
-利用する場合は `option/external_port.use`を`true`に設定する．
-##### Subscrib / Write
-`/dynamixel/external_port/write`トピックによって設定され，`loop_rate`の周期で書き込まれる．
-##### Publish / Read
-デフォルトでは読み込みは行われず，`/dynamixel/external_port/write`トピックによって指定されたことのあるIDのみから読み込みが行われる．    
-`loop_rate`の内`option/external_port.pub_ratio/mode`毎に1回の周期で mode が読みだされ，
-`option/external_port.pub_ratio/data`毎に1回の周期で data が読みだされる．    
-mode or data のどちらか一方でも読みだされた場合`/dynamixel/external_port/read`トピック として publish される．
-
-***************************
 
 ## Baudrate の一括変更
 
@@ -1417,7 +1461,7 @@ ros2 launch dynamixel_handler dynamixel_unify_baudrate_launch.xml
 
 シリアル通信にはパケットの送受信の間に latency timer 分のインターバルが挟まる．
 (USBデバイスのデフォルトは16msのようであり，高速な通信の妨げとなることが多い)
-安定した通信のためには，使用するUBSデバイスの latency timer と ros param の `laytency_timer`を一致させる必要がある．
+安定した通信のためには，使用するUSBデバイスの latency timer と ros param の `latency_timer` を一致させる必要がある．
 
 ros param の変更には，`config/config_dynamixel_handler.yaml`の以下の部分を編集して保存する．
 ```yaml
@@ -1483,8 +1527,6 @@ present系の8つのアドレスすべてから読み込んでも，同時読み
 また，`use_split_write`を`true`にして，分割で書き込み，1度に書き込むアドレスを減らしても動く．    
 書き込みに関しては，分割して行っても処理時間はほぼ変わらない(1ms未満しか遅くならない)ので，基本は`true`としておくべき．
 
-
-***************************
 ***************************
 
 
@@ -1503,14 +1545,14 @@ source ~/ros2_ws/install/setup.bash
    どんな方法で確認しても良いが，Ubuntuの場合はDynamixelを認識するはずのUSBを抜く前後で `$ ls /dev/ttyUSB*`の出力を比較すれば，少なくとも正しいデバイス名がわかる．
 1. デバイスの実行権限の確認   
    `$ sudo chmod 777 /dev/{your_device_name}`として改善すれば実行権限問題であることがわかる．
-1. Dynaimxel側の baudrate の確認    
+1. Dynamixel側の baudrate の確認    
    Dynamixel wizardで確認するのが最も確実．
    とりあえず動くようにするには `init/baudrate_auto_set`パラメータを `true`にセットするか,
     [`dynamixel_unify_baudrate`ノード](#Baudrateの一括変更) で目的の baudrate に強制変換してしまうのが良い．
 
 ### `dynamixel_handler`ノードを起動したときにdynamixelが一部しか見つからない
 
-1. laytency timer の確認    
+1. latency timer の確認    
    `$ cat /sys/bus/usb-serial/devices/{your_device_name}/latency_timer`を実行して出てきたデバイス側の latency timer の数値が，ros parameter の `latency_timer`と一致しているかどうかを確認する．  
    ros parameter 側の値を変えたい場合は config ファイルを修正すればよい．   
    デバイス側値を変えたい場合は [Latency Timer](#latency-timer) を参照．
@@ -1541,11 +1583,11 @@ source ~/ros2_ws/install/setup.bash
    一部のモータは Fast Sync Readに対応しておらず，そうしたモータの場合初期の通信が失敗して無限ループに入ってしまう．
    [Parameters](#parameters)　の`method/fast_read`を`false`にして，通常のSync Readに切り替えることで解決する．
 
-### dynamxiel は見つかったが通信の成功率が極端に低い
+### dynamixel は見つかったが通信の成功率が極端に低い
 
 1. Dynamixelの接続状態の確認
    TTLとRS485を並列に同時に使うと起きる．
-1. laytency timerの確認
+1. latency timerの確認
    デバイス側の latency timer の値よりも，ros parameter の `latency_timer`の値が小さいときに起きる．
 1. 別のノードによるUSBデバイスの占有
    他のノードがUSBデバイスを占有していると，通信がうまくいかないことがある．
@@ -1568,9 +1610,17 @@ export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 `
 usbipd: error: WSL 'usbip' client not correctly installed. See https://github.com/dorssel/usbipd-win/wiki/WSL-support for the latest instructions.
 `
-なんかようわからんが，以下のコマンドをwsl内で実行すると解決する．
+以下のコマンドをwsl内で実行すると解決する．
 ```bash
 sudo update-alternatives --install /usr/local/bin/usbip usbip `ls /usr/lib/linux-tools/*/usbip | tail -n1` 20
+```
+
+```text
+usbipd: error: WSL kernel is not USBIP capable; update with 'wsl --update'.
+```
+以下のコマンドをwsl内で実行すると解決する．
+```bash
+sudo modprobe vhci_hcd
 ```
 
 ## Launchファイルと設定（yaml）
@@ -1578,13 +1628,13 @@ sudo update-alternatives --install /usr/local/bin/usbip usbip `ls /usr/lib/linux
 ```bash
 ros2 launch dynamixel_handler launch_dynamixel_unify_baudrate.py
 ```
-対応する``yaml``は``config/config_dynamixel_handler.yaml``
+対応する``yaml``は``config/config_dynamixel_unify_baudrate.yaml``
 
 ### launch_dynamixel_handler.py
 ```bash
 ros2 launch dynamixel_handler launch_dynamixel_handler.py
 ```
-対応する``yaml``は``config/config_dynamixel_unify_baudrate.yaml``
+対応する``yaml``は``config/config_dynamixel_handler.yaml``
 
 ※ 一度ビルドしていれば，yamlファイルの変更に伴うビルドは不要
 

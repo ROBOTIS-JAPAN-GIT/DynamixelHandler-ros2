@@ -9,7 +9,7 @@ Dynamixelとやり取りを行うライブラリは[別のリポジトリ](https
 - **src/main.cpp**  
   ノードのエントリーポイント．
   初期化処理として ROS2 node の初期化やパラメータの設定，publisherやsubscriberの生成などを行っています．
-  さらに, 同期的に動作する処理を main_loop() に記述し，その中で実際の書き込みや読み込み処理を行っています．
+  さらに，同期的に動作する処理を `MainLoop()` に記述し，その中で実際の書き込みや読み込み処理を行っています．
   また，ノードの終了時には，各サーボのトルクをオフにするなどの終了処理を行っています．
 
 - **src/dynamixel_handler.hpp**  
@@ -36,9 +36,9 @@ Dynamixelとやり取りを行うライブラリは[別のリポジトリ](https
  - write するタイミングの検討について
    - 現在の方法：sub callback でストアしメインループで write
      - [＋] write回数が抑えられる．
-       - 各IDへの command が別の topic に乗ってきても，node 側で 1/roop_late [sec] 分の command をまとめてくれる
+       - 各IDへの command が別の topic に乗ってきても，node 側で 1/loop_rate [sec] 分の command をまとめてくれる
      - [＋] write の周期が一定以下になり，read の圧迫や負荷の変動が起きづらい
-     - [－] 一度 command をストアするので，topic の sub から 最大 1/roop_late [sec] の遅延が生じてしまう．
+     - [－] 一度 command をストアするので，topic の sub から 最大 1/loop_rate [sec] の遅延が生じてしまう．
        - 8ms未満くらいは遅れるが，そもそものtopicの遅延の方が支配的?(topic遅延が6ms，callback->writeが遅延2ms)
    - もう一つの方法：sub callback で直接 write
      - [＋] callback後の遅延は生じない
@@ -49,13 +49,13 @@ Dynamixelとやり取りを行うライブラリは[別のリポジトリ](https
 
 ### Node終了時の停止について
 
-- bus_watchbdogで停止できそう？
+- bus_watchdogで停止できそう？
   - RAM値なので簡単に書き込みできる
-  - 初期化時の最初に書き込まないと，bus_watchbdogがエラー中のサーボのgoal値を書き換えられない
+  - 初期化時の最初に書き込まないと，bus_watchdogがエラー中のサーボのgoal値を書き換えられない
   - Velocity・current制御モードの場合だけ停止するようにしていたが，全部停止するようにしてもいいかもしれない．
-- bus_watchbdogのバグあり．
+- bus_watchdogのバグあり．
   - XC330は停止しない？
-  - XM540は停止はするけどhomming_offsetの値分動いてから停止する．なんで？？？ (Firmware upate 46 to 48 で治った？治ってないやんけ！)
+  - XM540は停止はするけどhoming_offsetの値分動いてから停止する．なんで？？？ (Firmware update 46 to 48 で治った？治ってないやんけ！)
 
 
 1. 通信断絶時の停止について
@@ -69,7 +69,7 @@ Dynamixelとやり取りを行うライブラリは[別のリポジトリ](https
   
 2. ノードの明示的な停止について
     - こいつも `term/servo_auto_stop` で制御する．
-    - 速度・電流・PWM制御モードについてはbus_watchbdogでクリアしている．
+    - 速度・電流・PWM制御モードについてはbus_watchdogでクリアしている．
       - 念のため即時停止するように最も短いbus_watchdogを再設定するか？
     - 位置制御系については現在位置を指令しなおすしか手がないかな．
 
@@ -115,3 +115,114 @@ States 系: 1つのmsgに載せられるかは要検討
 
 
 エラークリア用のパケットが増えてる
+
+## optional_function 実装ルール（開発者向け）
+
+`optional_function` は「Dynamixelの基本制御に依存しない拡張機能」を追加するための層として扱う．
+既存の `ExternalPort` と `ImuOpenCR` は同じ流儀で実装しているので，以下を共通ルールとする．
+
+### 追加時の実装手順
+
+#### 1) 新規作成するファイル
+
+```text
+src/optional_function/<function_name>.hpp
+src/optional_function/<function_name>.cpp
+```
+
+#### 2) 既存ファイルの編集ポイント
+
+`src/dynamixel_handler.hpp`
+
+```cpp
+class <FunctionClass>;
+std::unique_ptr<FunctionClass> <function_ptr>_;
+```
+
+`src/main.cpp`
+
+```cpp
+#include "optional_function/<function_name>.hpp"
+
+bool use_<function_name>;
+get_parameter_or("option/<function_name>.use", use_<function_name>, false);
+if (use_<function_name>) {
+    <function_ptr>_ = std::make_unique<FunctionClass>(*this);
+}
+
+// MainLoop() 内
+if (<function_ptr>_) <function_ptr>_->MainProcess(); // 既存命名に合わせる
+```
+
+`config/config_dynamixel_handler*.yaml`
+
+```yaml
+option/<function_name>:
+    use: false
+    pub_ratio: 10
+    verbose/callback: false
+    verbose/write: false
+    verbose/read: {raw: false, err: false}
+```
+
+README (`../ReadMe.md` / `ReadMe.md`) も同時に更新する．
+
+### パラメータ設計のルール
+
+#### config 側（yaml）のルール
+
+- 有効化フラグは `option/<function_name>.use` を必須とする．
+- 周期制御は `pub_ratio`（または `pub_ratio/<kind>`）で統一する．
+- verbose系は `verbose/callback`, `verbose/write`, `verbose/read.{raw,err}` を基本形とする．
+
+#### cpp 側（読込実装）のルール
+
+```cpp
+parent_.get_parameter_or("option/<function_name>.pub_ratio", pub_ratio_, 10u);
+parent_.get_parameter_or("option/<function_name>.verbose/callback", verbose_callback_, false);
+parent_.get_parameter_or("option/<function_name>.verbose/write",    verbose_write_,    false);
+parent_.get_parameter_or("option/<function_name>.verbose/read.raw", verbose_read_,     false);
+parent_.get_parameter_or("option/<function_name>.verbose/read.err", verbose_read_err_, false);
+```
+
+- パラメータ読込は `get_parameter_or` を使い，デフォルト値をコード上で明示する．
+- configキー名とcppキー名を必ず一致させる．
+
+### 初期化と失敗時挙動
+
+#### 初期化時
+
+- optional機能の初期化失敗でノード全体を停止しない（`ROS_STOP`しない）．
+- 失敗時は `WARN` を出し，当該機能のみ無効化して続行する．
+- 依存先（例: firmware の model/address）が不一致な場合は，理由をログに残して無効化する．
+
+### 実行時処理のルール
+
+- `MainProcess()` は極力軽量にし，ループ周期を阻害しない．
+- read成功時のみpublishし，通信失敗時は `verbose/read.err` 設定に従って警告を出す．
+- callback内で待機が必要な場合は用途を明確化し，ログを出す（例: IMU校正の待機）．
+
+### 命名と責務分離
+
+- クラス名は機能単位で明確にする（例: `ExternalPort`, `ImuOpenCR`）．
+- 機能固有のtopic/param名は `dynamixel/<function>` および `option/<function>` に寄せる．
+- サーボ制御の共通ロジック（goal/present/gain/limit/error）に不要な依存を持ち込まない．
+
+### 実装前後チェックリスト
+
+#### ファイル構成
+
+1. `optional_function/<function_name>.hpp/.cpp` を作成したか．
+2. `dynamixel_handler.hpp` に前方宣言と `unique_ptr` を追加したか．
+3. `main.cpp` に生成条件と `MainLoop` 呼び出しを追加したか．
+
+#### 挙動
+
+1. 初期化失敗時に「機能のみ無効化」で続行できるか．
+2. `verbose` 設定で read/write/callback のログ粒度を制御できるか．
+3. read失敗時に通信エラーを握りつぶさず，必要時に警告できるか．
+
+#### ドキュメント
+
+1. `config` と README の記述が実装と一致しているか．
+2. topic名・param名・デフォルト値がREADMEに反映されているか．
