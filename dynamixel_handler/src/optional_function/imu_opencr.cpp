@@ -106,19 +106,20 @@ DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(paren
 	static auto& dyn_comm_ = parent_.dyn_comm_;
 
 	if ( !dyn_comm_.tryPing(id_imu_) ) {
-		ROS_INFO( "  * OpenCR IMU ID [%d] is not found", id_imu_);
+		ROS_WARN( "  * IMU ID [%d] is not found", id_imu_);
 		ROS_WARN( " < ... IMU on OpenCR is failed to initialize > ");
 		return;
 	}
-	auto oepncr_num = dyn_comm_.tryRead(AddrCommon::model_number, id_imu_);
-	if ( oepncr_num != model_number ) {
-		ROS_INFO("  * OpenCR IMU ID [%d] model_number [%d] is ignored (expected [%d])", id_imu_, (int)oepncr_num, (int)model_number);
+	auto opencr_num = dyn_comm_.tryRead(AddrCommon::model_number, id_imu_);
+	if ( opencr_num != model_number ) {
+		ROS_WARN("  * IMU ID [%d] is mismatched in model_number (read [%d], expected [%d])",
+				 id_imu_, (int)opencr_num, (int)model_number);
 		ROS_WARN( " < ... IMU on OpenCR is failed to initialize > ");
 		return;
 	}
-	ROS_INFO("  * OpenCR IMU ID [%d] model_number [%d] is found", id_imu_, (int)model_number);
-	ROS_INFO("    * adjust coord. [roll, pitch, yaw] = [%.2f, %.2f, %.2f]", rpy_adjust_deg[0], rpy_adjust_deg[1], rpy_adjust_deg[2]);
-	ROS_INFO("    * adjust coord. flip_z_axis = %s", flip_z_axis_ ? "true" : "false");
+	ROS_INFO("  * IMU ID [%d] model_number [%d] is found", id_imu_, (int)model_number);
+	ROS_INFO("    - coord. offset [roll, pitch, yaw] = [%.1f, %.1f, %.1f] deg", rpy_adjust_deg[0], rpy_adjust_deg[1], rpy_adjust_deg[2]);
+	ROS_INFO("    - '%s-handed' coordinate system", flip_z_axis_ ? "right" : "left");
 	
 	pub_imu_ = parent_.create_publisher<Imu>("dynamixel/imu/raw", 4);
 	sub_calib_ = parent_.create_generic_subscription(
@@ -156,7 +157,7 @@ bool DynamixelHandler::ImuOpenCR::WriteCalibGyro(uint8_t imu_id) {
 		static const vector<OpenCRAddress> addr_write_list = {addr_calib};
 		const map<uint8_t, vector<int64_t>> id_data_map = {{imu_id, {CALIB_GYRO_CMD}}};
 		ROS_INFO_STREAM("OpenCR IMU will be written"
-						<< control_table_layout(parent_.width_log_, id_data_map, addr_write_list));
+			<< control_table_layout(parent_.width_log_, id_data_map, addr_write_list));
 	}
  	return dyn_comm_.tryWrite(addr_calib, imu_id, CALIB_GYRO_CMD);
 }
@@ -183,7 +184,7 @@ bool DynamixelHandler::ImuOpenCR::ReadImuData(uint8_t imu_id) {
 	if (verbose_read_) {
 		const map<uint8_t, vector<int64_t>> id_data_map = {{imu_id, result}};
 		ROS_INFO_STREAM( "OpenCR IMU are read"
-						<< control_table_layout(parent_.width_log_, id_data_map, addr_imu_list) );
+			<< control_table_layout(parent_.width_log_, id_data_map, addr_imu_list) );
 	}
 
 	//* 読み取ったデータを反映
