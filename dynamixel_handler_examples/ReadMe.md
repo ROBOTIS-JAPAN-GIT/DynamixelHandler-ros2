@@ -27,7 +27,7 @@ source install/setup.bash
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>dynamixel_handler_examples </name>
-  <version>0.0.0</version>
+  <version>0.4.0</version>
   <description>The dynamixel_handler_examples package</description>
   <maintainer email="michikawa.ryohei@gmail.com">michikawa07</maintainer>
   <license>TODO</license>
