@@ -57,6 +57,24 @@ install(
 
 # ============================ dynamixel_handler ================================
 
+add_executable(
+  update_mylib_dynamixel
+  test/update_mylib_dynamixel.cpp
+)
+target_compile_features(
+  update_mylib_dynamixel
+  PUBLIC cxx_std_17
+)
+target_link_libraries(
+  update_mylib_dynamixel
+  dynamixel_communicator
+)
+
+install(
+  TARGETS update_mylib_dynamixel
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 # 実行可能ファイルの名前を変更
 add_executable(
   ${PROJECT_NAME} 
