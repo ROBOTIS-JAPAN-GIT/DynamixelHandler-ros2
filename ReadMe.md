@@ -356,36 +356,35 @@ ros2 run dynamixel_handler dynamixel_handler --ros-args -p init/dummy_servo_list
 
 ### Summary
 
-一般的なユースケースでは以下の2つの topic を利用すれば十分である． 
-- `/dynamixel/states`([dynamixel_handler_msgs::msg::DxlStates](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlstates-type))   
-  連結したサーボすべての状態をまとめた topic, `dynamixel_handler`から publish される．
-- `/dynamixel/commands/x`([dynamixel_handler_msgs::msg::DxlCommandsX](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandsx-type))   
-  Xシリーズのサーボを制御するための topic, `dynamixel_handler`に subscribe される．
+| Topic name | Type | Description | How to enable |
+|------------|------|-------------|------------------|
+| `/dynamixel/states` | [`DxlStates`](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlstates-type) | 連結したサーボすべての状態をまとめた topic | 常時 publish される |
+| `/dynamixel/commands/all` | [`DxlCommandsAll`](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandsall-type) | シリーズに関わらずすべてのサーボを制御するための topic | 常時 subscribe される |
+| `/dynamixel/commands/x` | [`DxlCommandsX`](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandsx-type) | Xシリーズのサーボを制御するための topic | `init/used_servo_series.X: true` 時のみ subscribe される |
+| `/dynamixel/commands/p`  | [`DxlCommandsP`](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandsp-type) | Pシリーズのサーボを制御するための topic | `init/used_servo_series.P: true`　時のみ subscribe される |
+| `/dynamixel/commands/pro` | [`DxlCommandsPro`](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandspro-type) | Proシリーズのサーボを制御するための topic | `init/used_servo_series.Pro: true` 時のみ subscribe される|
+| `/dynamixel/debug` | [`DynamixelDebug`](./dynamixel_handler_msgs#dynamixeldebug-type) | 連結したサーボの最低限の情報をまとめた topic | 常時 publish される |
+| `/dynamixel/shortcut` | [`DynamixelShortcut`](./dynamixel_handler_msgs#dynamixelshortcut-type)　| 全てのサーボへ基本的な指令を送るための topic  | 常時 subscribe される | 
+| `/dynamixel/state/*`  |   `Dynamixel*` | サーボの個々の状態をCLIで確認するための topic | 常時 publish される | 
+| `/dynamixel/command/x/*` | `DynamixelControlX*` | XシリーズのサーボをCLIで制御するための topic | `init/used_servo_series.X: true` 時のみ subscribe される  | 
+| `/dynamixel/command/p/*` | `DynamixelControlP*` | PシリーズのサーボをCLIで制御するための topic | `init/used_servo_series.P: true` 時のみ subscribe される  | 
+| `/dynamixel/command/pro/*` | `DynamixelControlPro*` | ProシリーズのサーボをCLIで制御するための topic | `init/used_servo_series.Pro: true` 時のみ subscribe される  | 
 
+一般的なユースケースでは以下の4つの topic を利用すれば十分である． 
+- `/dynamixel/states` : ノード内でサーボの状態を取得できる．
+- `/dynamixel/commands/x` : ノードからXシリーズサーボへ指令を送信できる．
+- `/dynamixel/debug` : コマンドライン上でサーボのトルクや角度を監視できる．
+- `/dynamixel/shortcut` : コマンドラインからサーボのトルクON/OFFなどを指令できる．
+
+各シリーズの利用には，[Parameters](#parameters) の章の[初期化・終了時等の挙動設定](#初期化終了時等の挙動設定)における `init/used_servo_series`パラメータの設定が必要がある．   
 ヘッダーファイルや型など，具体的な使い方ついては，[`dynamixel_handler_examples`](./dynamixel_handler_examples) を参照されたし．    
 型そのものについての詳細は[メッセージの定義](./dynamixel_handler_msgs/ReadMe.md)を参照のこと．
-
-<details>
-<summary> P, Pro シリーズを利用する場合 </summary>
-
-以下のトピックを利用する．
-
- - `/dynamixel/commands/p` ([`dynamixel_handler_msgs::msg::DxlCommandsP`](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandsp-type))   
-   Pシリーズのサーボを制御するための topic.
- - `/dynamixel/commands/pro` ([`dynamixel_handler_msgs::msg::DxlCommandsPro`](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandspro-type))   
-   Proシリーズのサーボを制御するための topic.
- - `/dynamixel/commands/all` ([`dynamixel_handler_msgs::msg::DxlCommandsAll`](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandsall-type))   
-   シリーズに関わらずすべてのサーボを制御するための topic.
-
-PシリーズやProシリーズを利用するには，[Parameters](#parameters) の章の[初期化・終了時等の挙動設定](#初期化終了時等の挙動設定)における `init/used_servo_series`パラメータを`P: true`/`Pro: true`に設定する必要がある．
-
-</details>
 
 ### Published Topics
 
 `dynamixel_handler` ノードが publish する topic を以下に示す．
 
-#### `/dynamixel/states` ([`DxlStates`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlstates-type))  
+#### `/dynamixel/states` ([`dynamixel_handler_msgs::msg::DxlStates`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlstates-type))  
   全シリーズ共通のサーボ状態をまとめた topic．
   publish の周期と内容は [Parameters](#parameters) の章の[実行時の動作設定](#実行時の動作設定)の`pub_ratio`パラメータで設定される．
   すなわち，各情報は読み取り周期 `pub_ratio/{~}`に従って読み取られ，**読み取られた場合のみ** publish される．
@@ -404,7 +403,7 @@ PシリーズやProシリーズを利用するには，[Parameters](#parameters)
 <details>
 <summary> `status` field の詳細 </summary>
 
-##### `status` field ([DynamixelStatus型](./dynamixel_handler_msgs#dynamixelstatus-type)) 
+##### `status` field ([`dynamixel_handler_msgs::msg::DynamixelStatus`型](./dynamixel_handler_msgs#dynamixelstatus-type)) 
 `pub_ratio/status` 周期で read され, read されたタイミングのみ全ての情報が埋められる．  
  `id_list`フィールドの長さとそれ以外の field の長さは必ず一致する．すなわち，`id_list`　が空配列なら他の field も空配列であり，`id_list`が長さNの配列なら他の field も長さNの配列になる．
 
@@ -429,7 +428,7 @@ Operating mode list
 <details>
 <summary> `present` field の詳細 </summary>
 
-##### `present` field ([DynamixelPresent型](./dynamixel_handler_msgs#dynamixelpresent-type))
+##### `present` field ([`dynamixel_handler_msgs::msg::DynamixelPresent`型](./dynamixel_handler_msgs#dynamixelpresent-type))
 
 高速化のため，位置，速度などの要素個別で読み取り周期`pub_ratio/present.{~}`を設定できる．   
 そのため最新のデータと非最新のデータが混在することになるが，非最新のデータを publish するかどうかは `pub_outdated_present_value` パラメータで設定可能．
@@ -569,7 +568,7 @@ Operating mode list
 
 </details>
 
-#### `/dynamixel/debug` ([`DynamixelDebug`型](./dynamixel_handler_msgs#dynamixeldebug-type))
+#### `/dynamixel/debug` ([`dynamixel_handler_msgs::msg::DynamixelDebug`型](./dynamixel_handler_msgs#dynamixeldebug-type))
   サーボが動作しないときにコマンドラインで状況を確認するためのデバッグ用の topic．  
   現在値と目標値の更新タイミングが異なるので注意．
 
@@ -584,22 +583,22 @@ Operating mode list
 |          | `goal`      | `float64[]` | 目標位置 (deg)．`pub_ratio/goal` 周期でread．                            |
 
 
-#### `/dynamixel/state/status` ([`DynamixelStatus`型](./dynamixel_handler_msgs#dynamixelstatus-type))  
+#### `/dynamixel/state/status` ([`dynamixel_handler_msgs::msg::DynamixelStatus`型](./dynamixel_handler_msgs#dynamixelstatus-type))  
 `/dynamixel/states` の `status` フィールドを単独で publish する topic．  
 
-#### `/dynamixel/state/present` ([`DynamixelPresent`型](./dynamixel_handler_msgs#dynamixelpresent-type))  
+#### `/dynamixel/state/present` ([`dynamixel_handler_msgs::msg::DynamixelPresent`型](./dynamixel_handler_msgs#dynamixelpresent-type))  
 `/dynamixel/states` の `present` フィールドを単独で publish する topic．
 
-#### `/dynamixel/state/goal` ([`DynamixelGoal`型](./dynamixel_handler_msgs#dynamixelgoal-type))  
+#### `/dynamixel/state/goal` ([`dynamixel_handler_msgs::msg::DynamixelGoal`型](./dynamixel_handler_msgs#dynamixelgoal-type))  
 `/dynamixel/states` の `goal` フィールドを単独で publish する topic．
 
-#### `/dynamixel/state/gain` ([`DynamixelGain`型](./dynamixel_handler_msgs#dynamixellimit-type))  
+#### `/dynamixel/state/gain` ([`dynamixel_handler_msgs::msg::DynamixelGain`型](./dynamixel_handler_msgs#dynamixellimit-type))  
 `/dynamixel/states` の `gain` フィールドを単独で publish する topic．
 
-#### `/dynamixel/state/limit` ([`DynamixelLimit`型](./dynamixel_handler_msgs#dynamixellimit-type))  
+#### `/dynamixel/state/limit` ([`dynamixel_handler_msgs::msg::DynamixelLimit`型](./dynamixel_handler_msgs#dynamixellimit-type))  
 `/dynamixel/states` の `limit` フィールドを単独で publish する topic．
 
-#### `/dynamixel/state/error` ([`DynamixelError`型](./dynamixel_handler_msgs#dynamixelerror-type))  
+#### `/dynamixel/state/error` ([`dynamixel_handler_msgs::msg::DynamixelError`型](./dynamixel_handler_msgs#dynamixelerror-type))  
 `/dynamixel/states` の `error` フィールドを単独で publish する topic．
 
 
@@ -608,7 +607,7 @@ Operating mode list
 `dynamixel_handler` ノードが subscribe する topic を以下に示す．    
 Subscribe 時にデータが一時保存され，直後のメインループ内で書き込みが行われるため，書き込みの最大周期は`loop_rate`[Hz]となる．  
 
-####  **`/dynamixel/commands/x`** ([`DxlCommandsX`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandsx-type))    
+####  **`/dynamixel/commands/x`** ([`dynamixel_handler_msgs::msg::DxlCommandsX`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandsx-type))    
   Xシリーズ用のコマンドを統合した topic．
  Subscribe したデータの各 field (`pwm_control`, `status`, ... など)の中で **`id_list`フィールドが埋まっているfieldのみ**処理される．   
   [Parameters](#parameters) の章の[初期化・終了時等の挙動設定](#初期化終了時等の挙動設定)における `init/used_servo_series` パラメータで `X: true` に設定されている場合に利用可能．
@@ -630,7 +629,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `pwm_control` field の詳細 </summary>
 
-##### `pwm_control` field ([DynamixelControlXPwm型](./dynamixel_handler_msgs#dynamixelcontrolxpwm-type))
+##### `pwm_control` field ([`dynamixel_handler_msgs::msg::DynamixelControlXPwm`型](./dynamixel_handler_msgs#dynamixelcontrolxpwm-type))
 `id_list`と`pwm_percent`の長さは一致する必要がある．
 | Field         | Type        | Description                                          |
 |---------------|-------------|------------------------------------------------------|
@@ -642,7 +641,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `current_control` field の詳細 </summary>
 
-##### `current_control` field ([DynamixelControlXCurrent型](./dynamixel_handler_msgs#dynamixelcontrolxcurrent-type))
+##### `current_control` field ([`dynamixel_handler_msgs::msg::DynamixelControlXCurrent`型](./dynamixel_handler_msgs#dynamixelcontrolxcurrent-type))
 `id_list`と`current_ma`の長さは一致する必要がある．
 | Field        | Type        | Description                                          |
 |--------------|-------------|------------------------------------------------------|
@@ -654,7 +653,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `velocity_control` field の詳細 </summary>
 
-##### `velocity_control` field ([DynamixelControlXVelocity型](./dynamixel_handler_msgs#dynamixelcontrolxvelocity-type))
+##### `velocity_control` field ([`dynamixel_handler_msgs::msg::DynamixelControlXVelocity`型](./dynamixel_handler_msgs#dynamixelcontrolxvelocity-type))
 `velocity_deg_s`と`profile_acc_deg_ss`のどちらかのみが空配列であってもよい．
 `id_list`と`velocity_deg_s` または `profile_acc_deg_ss`の長さは一致する必要がある．
 | Field                | Type        | Description                                          |
@@ -668,7 +667,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `position_control` field の詳細 </summary>
 
-##### `position_control` field ([DynamixelControlXPosition型](./dynamixel_handler_msgs#dynamixelcontrolxposition-type))
+##### `position_control` field ([`dynamixel_handler_msgs::msg::DynamixelControlXPosition`型](./dynamixel_handler_msgs#dynamixelcontrolxposition-type))
 全ての要素が指定されている必要はない．
 指定された要素と`id_list`の長さは一致する必要がある．
 | Field                | Type        | Description                                          |
@@ -683,7 +682,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `extended_position_control` field の詳細 </summary>
 
-##### `extended_position_control` field ([DynamixelControlXExtendedPosition型](./dynamixel_handler_msgs#dynamixelcontrolxextendedposition-type))
+##### `extended_position_control` field ([`dynamixel_handler_msgs::msg::DynamixelControlXExtendedPosition`型](./dynamixel_handler_msgs#dynamixelcontrolxextendedposition-type))
 全ての要素が指定されている必要はない．
 指定された要素と`id_list`の長さは一致する必要がある．
 | Field                | Type        | Description                                          |
@@ -699,7 +698,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `current_base_position_control` field の詳細 </summary>
 
-##### `current_base_position_control` field ([DynamixelControlXCurrentPosition型](./dynamixel_handler_msgs#dynamixelcontrolxcurrentposition-type))
+##### `current_base_position_control` field ([`dynamixel_handler_msgs::msg::DynamixelControlXCurrentPosition`型](./dynamixel_handler_msgs#dynamixelcontrolxcurrentposition-type))
 全ての要素が指定されている必要はない．
 指定された要素と`id_list`の長さは一致する必要がある．
 | Field                | Type        | Description                                          |
@@ -715,7 +714,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 
  `status`, `gain`, `limit`, `extra` field は [`/dynamixel/commands/all` topic の説明](#dynamixelcommandlimit-dynamixellimit型)を参照
 
-#### `/dynamixel/commands/p` ([`DxlCommandsP`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandsp-type))    
+#### `/dynamixel/commands/p` ([`dynamixel_handler_msgs::msg::DxlCommandsP`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandsp-type))    
   Pシリーズ用のコマンドを統合した topic．
  Subscribe したデータの各 field (`pwm_control`, `status`, ... など)の中で **`id_list`フィールドが埋まっているfieldのみ**処理される．    
   [Parameters](#parameters) の章の[初期化・終了時等の挙動設定](#初期化終了時等の挙動設定)における `init/used_servo_series` パラメータで `P: true` に設定されている場合に利用可能．
@@ -736,7 +735,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `pwm_control` field の詳細 </summary>
 
-##### `pwm_control` field ([DynamixelControlPPwm型](./dynamixel_handler_msgs#dynamixelcontrolppwm-type))
+##### `pwm_control` field ([`dynamixel_handler_msgs::msg::DynamixelControlPPwm`型](./dynamixel_handler_msgs#dynamixelcontrolppwm-type))
 `id_list`と`pwm_percent`の長さは一致する必要がある．
 | Field         | Type        | Description                                          |
 |---------------|-------------|------------------------------------------------------|
@@ -748,7 +747,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `current_control` field の詳細 </summary>
 
-##### `current_control` field ([DynamixelControlPCurrent型](./dynamixel_handler_msgs#dynamixelcontrolpcurrent-type))
+##### `current_control` field ([`dynamixel_handler_msgs::msg::DynamixelControlPCurrent`型](./dynamixel_handler_msgs#dynamixelcontrolpcurrent-type))
 `id_list`と`current_ma`の長さは一致する必要がある．
 | Field        | Type        | Description                                          |
 |--------------|-------------|------------------------------------------------------|
@@ -760,7 +759,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `velocity_control` field の詳細 </summary>
 
-##### `velocity_control` field ([DynamixelControlPVelocity型](./dynamixel_handler_msgs#dynamixelcontrolpvelocity-type))
+##### `velocity_control` field ([`dynamixel_handler_msgs::msg::DynamixelControlPVelocity`型](./dynamixel_handler_msgs#dynamixelcontrolpvelocity-type))
 全ての要素が指定されている必要はない．
 指定された要素と`id_list`の長さは一致する必要がある．
 | Field                | Type        | Description                                          |
@@ -775,7 +774,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `position_control` field の詳細 </summary>
 
-##### `position_control` field ([DynamixelControlPPosition型](./dynamixel_handler_msgs#dynamixelcontrolpposition-type))
+##### `position_control` field ([`dynamixel_handler_msgs::msg::DynamixelControlPPosition`型](./dynamixel_handler_msgs#dynamixelcontrolpposition-type))
 全ての要素が指定されている必要はない．
 指定された要素と`id_list`の長さは一致する必要がある．
 | Field                | Type        | Description                                          |
@@ -792,7 +791,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `extended_position_control` field の詳細 </summary>
 
-##### `extended_position_control` field ([DynamixelControlPExtendedPosition型](./dynamixel_handler_msgs#dynamixelcontrolpextendedposition-type))
+##### `extended_position_control` field ([`dynamixel_handler_msgs::msg::DynamixelControlPExtendedPosition`型](./dynamixel_handler_msgs#dynamixelcontrolpextendedposition-type))
 全ての要素が指定されている必要はない．
 指定された要素と`id_list`の長さは一致する必要がある．
 
@@ -810,7 +809,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 
  `status`, `gain`, `limit`, `extra` field は [`/dynamixel/commands/all` topic の説明](#dynamixelcommandlimit-dynamixellimit型)を参照
 
-#### `/dynamixel/commands/pro` ([`DxlCommandsPro`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandspro-type))    
+#### `/dynamixel/commands/pro` ([`dynamixel_handler_msgs::msg::DxlCommandsPro`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandspro-type))    
   Proシリーズ用のコマンドを統合した topic．
  Subscribe したデータの各 field (`current_control`, `status`, ... など)の中で **`id_list`フィールドが埋まっているfieldのみ**処理される．   
   [Parameters](#parameters) の章の[初期化・終了時等の挙動設定](#初期化終了時等の挙動設定)における `init/used_servo_series` パラメータで `Pro: true` に設定されている場合に利用可能．
@@ -829,7 +828,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `current_control` field の詳細 </summary>
 
-##### `current_control` field ([DynamixelControlProCurrent型](./dynamixel_handler_msgs#dynamixelcontrolprocurrent-type))
+##### `current_control` field ([`dynamixel_handler_msgs::msg::DynamixelControlProCurrent`型](./dynamixel_handler_msgs#dynamixelcontrolprocurrent-type))
 `id_list`と`current_ma`の長さは一致する必要がある．
 | Field        | Type        | Description                                          |
 |--------------|-------------|------------------------------------------------------|
@@ -841,7 +840,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `velocity_control` field の詳細 </summary>
 
-##### `velocity_control` field ([DynamixelControlProVelocity型](./dynamixel_handler_msgs#dynamixelcontrolprovelocity-type))
+##### `velocity_control` field ([`dynamixel_handler_msgs::msg::DynamixelControlProVelocity`型](./dynamixel_handler_msgs#dynamixelcontrolprovelocity-type))
 全ての要素が指定されている必要はない．
 指定された要素と`id_list`の長さは一致する必要がある．
 | Field                | Type        | Description                                          |
@@ -856,7 +855,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `position_control` field の詳細 </summary>
 
-##### `position_control` field ([DynamixelControlProPosition型](./dynamixel_handler_msgs#dynamixelcontrolproposition-type))
+##### `position_control` field ([`dynamixel_handler_msgs::msg::DynamixelControlProPosition`型](./dynamixel_handler_msgs#dynamixelcontrolproposition-type))
 全ての要素が指定されている必要はない．
 指定された要素と`id_list`の長さは一致する必要がある．
 | Field                | Type        | Description                                          |
@@ -872,7 +871,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `extended_position_control` field の詳細 </summary>
 
-##### `extended_position_control` field ([DynamixelControlProExtendedPosition型](./dynamixel_handler_msgs#dynamixelcontrolproextendedposition-type))
+##### `extended_position_control` field ([`dynamixel_handler_msgs::msg::DynamixelControlProExtendedPosition`型](./dynamixel_handler_msgs#dynamixelcontrolproextendedposition-type))
 全ての要素が指定されている必要はない．
 指定された要素と`id_list`の長さは一致する必要がある．
 | Field                | Type        | Description                                          |
@@ -888,7 +887,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 
  `status`, `gain`, `limit`, `extra` field は [`/dynamixel/commands/all` topic の説明](#dynamixelcommandlimit-dynamixellimit型)を参照
 
-#### `/dynamixel/commands/all` ([`DxlCommandsAll`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandsall-type))  
+#### `/dynamixel/commands/all` ([`dynamixel_handler_msgs::msg::DxlCommandsAll`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlcommandsall-type))  
   全シリーズを共通で扱うための topic. シリーズ共通で扱うため，`status.mode` で制御モードを指定し`goal.~`で各種目標値を与える．
   
 | Field                           | Type                                  | Description                                                                                                                               |
@@ -905,7 +904,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `status` field の詳細 </summary>
 
-##### `status` field ([DynamixelStatus型](./dynamixel_handler_msgs#dynamixelstatus-type))
+##### `status` field ([`dynamixel_handler_msgs::msg::DynamixelStatus`型](./dynamixel_handler_msgs#dynamixelstatus-type))
 全ての要素が指定されている必要はない．
 指定された要素と`id_list`の長さは一致する必要がある．
 | Field     | Type      | Description                                                     |
@@ -923,7 +922,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `goal` field の詳細 </summary>
 
-##### `goal` field の詳細 ([DynamixelGoal型](./dynamixel_handler_msgs#dynamixelgoal-type))
+##### `goal` field の詳細 ([`dynamixel_handler_msgs::msg::DynamixelGoal`型](./dynamixel_handler_msgs#dynamixelgoal-type))
 全ての要素が指定されている必要はない．
 指定された要素と`id_list`の長さは一致する必要がある．
 | Field                | Type        | Description                                          | Note |
@@ -941,7 +940,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `gain` field の詳細 </summary>
 
-##### `gain` field の詳細 ([DynamixelGain型](./dynamixel_handler_msgs#dynamixelgaintype))
+##### `gain` field の詳細 ([`dynamixel_handler_msgs::msg::DynamixelGain`型](./dynamixel_handler_msgs#dynamixelgaintype))
 全ての要素が指定されている必要はない．
 指定された要素と`id_list`の長さは一致する必要がある．
 | Field                        | Type      | Description                                  | Note |
@@ -960,7 +959,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `limit` field の詳細 </summary>
 
-##### `limit` field の詳細 ([DynamixelLimit型](./dynamixel_handler_msgs#dynamixellimit-type))
+##### `limit` field の詳細 ([`dynamixel_handler_msgs::msg::DynamixelLimit`型](./dynamixel_handler_msgs#dynamixellimit-type))
 全ての要素が指定されている必要はない．
 指定された要素と`id_list`の長さは一致する必要がある．
 
@@ -985,14 +984,14 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 <details>
 <summary> `extra` field の詳細 </summary>
 
-##### `extra` field の詳細 ([DynamixelExtra型](./dynamixel_handler_msgs#dynamixelextra-type))
+##### `extra` field の詳細 ([`dynamixel_handler_msgs::msg::DynamixelExtra`型](./dynamixel_handler_msgs#dynamixelextra-type))
 | Field | Type | Description |
 |-------|------|-------------|
 | `# 未実装につき略` |      |             |
 
 </details>
 
-#### `/dynamixel/shortcut` ([`DynamixelShortcut`型](./dynamixel_handler_msgs#dynamixelshortcut-type))    
+#### `/dynamixel/shortcut` ([`dynamixel_handler_msgs::msg::DynamixelShortcut`型](./dynamixel_handler_msgs#dynamixelshortcut-type))    
  Dynamixelの起動、停止、エラー解除などのショートカットコマンド  
 
 |Field     | Type      | Description                                                                 |
@@ -1247,29 +1246,32 @@ option/external_port:
 | `stamp` | `builtin_interfaces/Time` | データが読み取れた時刻 |
 | `id_list` | `uint16[]` | サーボのID |
 | `port` | `uint16[]` | External Portのポート番号 |
-| `mode` | `string[]` | ポートのモード |
+| `mode` | `string[]` | ポートのモードの配列 (以下の External port mode list を参照) |
 | `data` | `int16[]` | ポートのデータ (`analog`: 0~4096, `digital`: 0/1, `unset`: -1) |
 
-mode 文字列の意味:
+<details>
+<summary> External port mode list </summary>
 
-- `"a_in"`: analog in
-- `"d_out"`: digital out
-- `"d_in_pu"`: digital in (pull up)
-- `"d_in_pd"`: digital in (pull down)
-- `"unset"`: ポート未設定
+- `"a_in"` = analog in : アナログ入力モードで，0-4096の値を読み取る．
+- `"d_out"` = digital out : デジタル出力モードで，High or Low の出力状態を表す．
+- `"d_in_pu"` = digital in (pull up) : プルアップ抵抗付きのデジタル入力モードで，0または1の値を読み取る．
+- `"d_in_pd"` = digital in (pull down) : プルダウン抵抗付きのデジタル入力モードで，0または1の値を読み取る．
+- `"unset"` : `/dynamixel/external_port/read` topic でポートを設定していない状態．
+
+</details>
 
 #### `/dynamixel/external_port/write` ([`DxlExternalPort`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxlexternalport-type))    
 
 サーボのIDとポート番号の組で External Port を指定する．  
-`id_list` と `port` の長さは一致が必要で，`mode` / `data` は必要な方だけ指定できる（指定した場合は `id_list` と同じ長さが必要）．
+`id_list` と `port` の長さは一致が必要で，`mode` / `data` は必要な方だけ指定できる（指定した要素は `id_list` と長さが一致する必要がある．）．
 
 | Field | Type | Description |
 |---|---|---|
-| `stamp` | `builtin_interfaces/Time` | メッセージのタイムスタンプ（未使用） |
-| `id_list` | `uint16[]` | 適用するサーボID |
+| `stamp` | `builtin_interfaces/Time` | メッセージのタイムスタンプ（無効） |
+| `id_list` | `uint16[]` | 適用するサーボのIDリスト．番号重複OK． |
 | `port` | `uint16[]` | ポート番号 (X: 1-3, P/Pro: 1-4) |
-| `mode` | `string[]` | ポートのモード文字列 |
-| `data` | `int16[]` | ポートのデータ（`digital out`時に0/1を使用） |
+| `mode` | `string[]` | ポートのモード．文字列で指定 (詳細はDxlExternalPort型の定数を参照) |
+| `data` | `int16[]` | ポートのデータ．モードが digital out の場合のみ有効．(0: Low, 1: High) |
 
 ### OpenCR IMU
 
@@ -1420,7 +1422,7 @@ Xシリーズの場合，`/dynamixel/commands/x`の`limit`フィールド or `/d
   
 ### その他 (extra)
  - drive_mode             : (Proシリーズにはない) 
- - return_delay_time      : Dynamixelの応答遅延時間，デフォルトで$500$usだが，この pkg では初期化時に$0$usに上書きされる．
+ - return_delay_time      : Dynamixelの応答遅延時間，デフォルトで $500$ usだが，この pkg では初期化時に $0$ usに上書きされる．
  - homing_offset          : この値が現在の真の角度に加算されて出力される．この pkg では，reboot時の角度補正に用いられる．
  - moving_threshold       : 
  - startup_configuration  : not support, buckupがあるときPIDゲインやprofile系の値を自動で復元してくれるが，PIDのデフォルト値がモードによって異なる問題があるので使わない．
@@ -1439,9 +1441,9 @@ Xシリーズの場合，`/dynamixel/commands/x`の`limit`フィールド or `/d
 > (bus_watchdog の設定値が1以上の時) bus_watchdogの設定値 × 20ms 通信がないと自動で動作停止処理が実行される．
 > しかし，位置制御系のモードかつ，homing_offset が設定されている状態でこの動作停止処理が走るとなぜか homing_offsetだけ回転する．
 > firmwareのバグの模様，バージョンによってはこの問題が解消されているかもしれないが，危険なので位置制御系のモードで bus_watchdog を使うのは避けるべき．
-> ということで `term/servo_auto_stop`が`true`かつ，PWM・電流・速度制御モードの場合のみ，$500$ms で停止するように bus_watchdog を設定し，それ以外のモードでは bus_watchdog は $0$ として利用しないようにしている．
+> ということで `term/servo_auto_stop`が`true`かつ，PWM・電流・速度制御モードの場合のみ，$500$ ms で停止するように bus_watchdog を設定し，それ以外のモードでは bus_watchdog は $0$ として利用しないようにしている．
 
-## Baudrate の一括変更
+## Baudrateの一括変更
 
 `config/config_dynamixel_unify_baudrate.yaml`の以下の部分を編集し，保存
 ```yaml
@@ -1665,5 +1667,6 @@ ros2 launch dynamixel_handler launch_dynamixel_handler.py
 対応する``yaml``は``config/config_dynamixel_handler.yaml``
 
 ※ 一度ビルドしていれば，yamlファイルの変更に伴うビルドは不要
+
 
 
