@@ -84,29 +84,32 @@ class DynamixelUnifyBaudrateNode(Node):
                 self.get_logger().error("Failed to open")
                 continue
 
-            for servo_id in range(self.id_min, self.id_max + 1):
-                if not rclpy.ok():
-                    self.comm.close_port()
-                    return
+            responsed_id = self.comm.Ping_broadcast()
+            id_model_map = self.comm.ping_id_model_map_last_read()
 
-                self.get_logger().info(f"  Scanning ID: {servo_id}\x1b[999D\x1b[1A")
-                if servo_id in found_id_set:
+            if len(responsed_id) == 0:
+                self.get_logger().warn("  Broadcast ping returned no IDs")
+
+            for servo_id in responsed_id:
+                if servo_id in found_id_set: # Already found, skip 
                     continue
-                if not self.comm.try_ping(servo_id):
+
+                model_num = int(id_model_map[servo_id])
+                if servo_id < self.id_min or self.id_max < servo_id:
+                    self.get_logger().info(f"  ID [{servo_id}] (model:{model_num}) is found, out of range, skip")
                     continue
+                else:
+                    self.get_logger().info(f"  ID [{servo_id}] (model:{model_num}) is found, try change baudrate {self.baudrate_target}")
 
-                self.get_logger().info(
-                    f"  ID [{servo_id}] is found, try change baudrate {self.baudrate_target}"
-                )
-
-                model_num = self.comm.try_read_uint16(dxl.ADDR_MODEL_NUMBER, servo_id)
                 series = dxl.series_from_model(model_num)
                 if series == dxl.SERIES_X:
                     addr_torque_enable = dxl.ADDR_X_TORQUE_ENABLE
                 elif series == dxl.SERIES_P:
                     addr_torque_enable = dxl.ADDR_P_TORQUE_ENABLE
+                elif series == dxl.SERIES_PRO:
+                    addr_torque_enable = dxl.ADDR_PRO_TORQUE_ENABLE
                 else:
-                    self.get_logger().error(f"  Unknown series {model_num}")
+                    self.get_logger().error(f"    Unknown series {model_num}")
                     continue
 
                 self.comm.try_write_uint8(addr_torque_enable, servo_id, dxl.TORQUE_DISABLE)
