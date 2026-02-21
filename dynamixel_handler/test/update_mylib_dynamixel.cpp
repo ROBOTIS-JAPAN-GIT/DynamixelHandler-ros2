@@ -160,6 +160,55 @@ std::string mode_name(Mode mode) {
   return "unknown";
 }
 
+bool is_read_mode(Mode mode) {
+  switch (mode) {
+    case Mode::BulkRead:
+    case Mode::FastBulkRead:
+    case Mode::ReadSingle:
+    case Mode::ReadMulti:
+    case Mode::SyncReadSingle:
+    case Mode::SyncReadMulti:
+    case Mode::FastSyncReadSingle:
+    case Mode::FastSyncReadMulti:
+      return true;
+    case Mode::Ping:
+    case Mode::BroadcastPing:
+      return false;
+  }
+  return false;
+}
+
+size_t count_values(const std::map<uint8_t, std::vector<int64_t>>& id_values_map) {
+  size_t count = 0;
+  for (const auto& id_values : id_values_map) {
+    count += id_values.second.size();
+  }
+  return count;
+}
+
+void print_read_values(const std::map<uint8_t, std::vector<int64_t>>& id_values_map) {
+  std::cout << "read_values=";
+  bool first_id = true;
+  for (const auto& id_values : id_values_map) {
+    if (!first_id) {
+      std::cout << ' ';
+    }
+    first_id = false;
+    std::cout << static_cast<int>(id_values.first) << ":[";
+    for (size_t i = 0; i < id_values.second.size(); ++i) {
+      if (i) {
+        std::cout << ',';
+      }
+      std::cout << id_values.second[i];
+    }
+    std::cout << "]";
+  }
+  if (id_values_map.empty()) {
+    std::cout << "(empty)";
+  }
+  std::cout << "\n";
+}
+
 void print_ids(const std::vector<uint8_t>& ids) {
   std::cout << "ids=";
   for (size_t i = 0; i < ids.size(); ++i) {
@@ -200,8 +249,12 @@ IterResult run_iteration(
     DynamixelCommunicator& comm,
     Mode mode,
     const std::vector<uint8_t>& ids,
-    const std::vector<DynamixelAddress>& multi_addrs) {
+    const std::vector<DynamixelAddress>& multi_addrs,
+    std::map<uint8_t, std::vector<int64_t>>* read_values = nullptr) {
   IterResult result;
+  if (read_values) {
+    read_values->clear();
+  }
 
   switch (mode) {
     case Mode::Ping: {
@@ -237,6 +290,11 @@ IterResult run_iteration(
       std::map<uint8_t, DynamixelAddress> id_addr_map;
       for (uint8_t id : ids) id_addr_map.emplace(id, AddrCommon::model_number);
       const auto values = comm.BulkRead(id_addr_map);
+      if (read_values) {
+        for (const auto& id_value : values) {
+          (*read_values)[id_value.first] = {id_value.second};
+        }
+      }
       result.success_items = values.size();
       result.full_success = !comm.timeout_last_read() && !comm.comm_error_last_read() && values.size() == ids.size();
       return result;
@@ -247,6 +305,11 @@ IterResult run_iteration(
       std::map<uint8_t, DynamixelAddress> id_addr_map;
       for (uint8_t id : ids) id_addr_map.emplace(id, AddrCommon::model_number);
       const auto values = comm.BulkRead_fast(id_addr_map);
+      if (read_values) {
+        for (const auto& id_value : values) {
+          (*read_values)[id_value.first] = {id_value.second};
+        }
+      }
       result.success_items = values.size();
       result.full_success = !comm.timeout_last_read() && !comm.comm_error_last_read() && values.size() == ids.size();
       return result;
@@ -255,9 +318,12 @@ IterResult run_iteration(
     case Mode::ReadSingle: {
       result.packets = ids.size();
       for (uint8_t id : ids) {
-        (void)comm.Read(AddrCommon::model_number, id);
+        const int64_t value = comm.Read(AddrCommon::model_number, id);
         if (!comm.timeout_last_read() && !comm.comm_error_last_read()) {
           ++result.success_items;
+          if (read_values) {
+            (*read_values)[id] = {value};
+          }
         }
       }
       result.full_success = (result.success_items == ids.size());
@@ -270,6 +336,9 @@ IterResult run_iteration(
         const auto values = comm.Read(multi_addrs, id);
         if (!comm.timeout_last_read() && !comm.comm_error_last_read() && values.size() == multi_addrs.size()) {
           ++result.success_items;
+          if (read_values) {
+            (*read_values)[id] = values;
+          }
         }
       }
       result.full_success = (result.success_items == ids.size());
@@ -279,6 +348,11 @@ IterResult run_iteration(
     case Mode::SyncReadSingle: {
       result.packets = 1;
       const auto values = comm.SyncRead(AddrCommon::model_number, ids);
+      if (read_values) {
+        for (const auto& id_value : values) {
+          (*read_values)[id_value.first] = {id_value.second};
+        }
+      }
       result.success_items = values.size();
       result.full_success = !comm.timeout_last_read() && !comm.comm_error_last_read() && values.size() == ids.size();
       return result;
@@ -287,6 +361,9 @@ IterResult run_iteration(
     case Mode::SyncReadMulti: {
       result.packets = 1;
       const auto values = comm.SyncRead(multi_addrs, ids);
+      if (read_values) {
+        *read_values = values;
+      }
       result.success_items = values.size();
       result.full_success = !comm.timeout_last_read() && !comm.comm_error_last_read() && values.size() == ids.size();
       return result;
@@ -295,6 +372,11 @@ IterResult run_iteration(
     case Mode::FastSyncReadSingle: {
       result.packets = 1;
       const auto values = comm.SyncRead_fast(AddrCommon::model_number, ids);
+      if (read_values) {
+        for (const auto& id_value : values) {
+          (*read_values)[id_value.first] = {id_value.second};
+        }
+      }
       result.success_items = values.size();
       result.full_success = !comm.timeout_last_read() && !comm.comm_error_last_read() && values.size() == ids.size();
       return result;
@@ -303,6 +385,9 @@ IterResult run_iteration(
     case Mode::FastSyncReadMulti: {
       result.packets = 1;
       const auto values = comm.SyncRead_fast(multi_addrs, ids);
+      if (read_values) {
+        *read_values = values;
+      }
       result.success_items = values.size();
       result.full_success = !comm.timeout_last_read() && !comm.comm_error_last_read() && values.size() == ids.size();
       return result;
@@ -468,6 +553,17 @@ int main(int argc, char** argv) {
             << " success_item_per_sec=" << item_per_sec
             << " full_success=" << full_success_count << "/" << opt.iterations
             << "\n";
+
+  if (is_read_mode(opt.mode)) {
+    std::map<uint8_t, std::vector<int64_t>> read_values;
+    const IterResult snapshot = run_iteration(comm, opt.mode, opt.ids, multi_addrs, &read_values);
+    std::cout << "read_snapshot id_count=" << read_values.size()
+              << " value_count=" << count_values(read_values)
+              << " success_item=" << snapshot.success_items
+              << " full_success=" << (snapshot.full_success ? 1 : 0)
+              << "\n";
+    print_read_values(read_values);
+  }
 
   comm.ClosePort();
   return 0;
