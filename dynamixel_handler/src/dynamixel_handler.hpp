@@ -273,10 +273,10 @@ class DynamixelHandler : public rclcpp::Node {
         bool check_series(id_t id, series_t series);
         
         //* 単体通信を組み合わせた上位機能
-        bool ScanDynamixels(id_t id_min, id_t id_max, uint32_t num_expected, uint32_t time_retry_ms);
-        bool DummyUpDynamixel(id_t servo_id);
-        bool RemoveDynamixel(id_t servo_id);
+        bool tryAddDynamixels(const set<id_t>& scan_id_set, uint32_t num_expected, uint32_t times_retry);
         bool AddDynamixel(id_t servo_id);
+        bool RemoveDynamixel(id_t servo_id);
+        bool DummyUpDynamixel(id_t servo_id);
         bool ClearHardwareError(id_t servo_id);
         bool ChangeOperatingMode(id_t servo_id, DynamixelOperatingMode mode);
         bool TorqueOn(id_t servo_id);

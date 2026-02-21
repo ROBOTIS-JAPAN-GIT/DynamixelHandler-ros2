@@ -7,12 +7,18 @@ static constexpr double DEG = M_PI/180.0; // degを単位に持つ数字に掛�
 
 //* 基本機能をまとめた関数たち
 // 各シリーズのDynamixelを検出する．
-bool DynamixelHandler::ScanDynamixels(id_t id_min, id_t id_max, uint32_t num_expected, uint32_t times_retry) {
-    for (int id = id_min; id <= id_max; id++){
-        ROS_INFO("  Scanning ID: %d\x1b[999D\x1b[1A", id);
+bool DynamixelHandler::tryAddDynamixels(const set<id_t>& scan_id_set, uint32_t num_expected, uint32_t times_retry) {
+    set<id_t> target_id_set;
+    if (dyn_comm_.wait_time_ping_broadcast() < scan_id_set.size() * dyn_comm_.dead_time_retry_ping()){
+        ROS_WARN("  Bulk scanning ID: %d ~ %d \x1b[999D\x1b[1A", *scan_id_set.begin(), *scan_id_set.rbegin());
+        for (const auto id : dyn_comm_.Ping_broadcast()) if (is_in(id, scan_id_set)) target_id_set.insert(id);
+    }
+    if (target_id_set.empty()) target_id_set = scan_id_set;
+    for (const auto id : target_id_set) {
+        ROS_INFO("  Scanning ID: %d           \x1b[999D\x1b[1A", id);
         AddDynamixel(id);
         if ( !rclcpp::ok() ) return false;
-    } 
+    }
     auto num_found = id_set_.size();
     // 再帰から脱する条件
     if ( times_retry <= 0 ) return false;
@@ -22,7 +28,7 @@ bool DynamixelHandler::ScanDynamixels(id_t id_min, id_t id_max, uint32_t num_exp
     if ( num_expected == 0 )        ROS_WARN("  No dynamixels are found yet" );
     ROS_WARN("   > %d times retry left ( %ld/%s servos )", times_retry, num_found, num_expected==0?"?":std::to_string(num_expected).c_str());
     rsleep(100);
-    return ScanDynamixels(id_min, id_max, num_expected, times_retry-1);
+    return tryAddDynamixels(scan_id_set, num_expected, times_retry-1);
 }
 
 bool DynamixelHandler::DummyUpDynamixel(id_t id){
@@ -92,9 +98,9 @@ bool DynamixelHandler::AddDynamixel(id_t id){
     goal_w_[id] = goal_r_[id];
 
     if ( abs(default_["profile_acc_deg_ss"] - goal_r_[id][PROFILE_ACC]/DEG) > 3 ) 
-        ROS_WARN("   profile acc. '%2.1f' is too small (now '%2.1f')", default_["profile_acc_deg_ss"], goal_r_[id][PROFILE_ACC]/DEG);
+        ROS_WARN("   profile acc. '%2.1f' could not set (now '%2.1f')", default_["profile_acc_deg_ss"], goal_r_[id][PROFILE_ACC]/DEG);
     if ( abs(default_["profile_vel_deg_s"] - goal_r_[id][PROFILE_VEL]/DEG) > 1 ) 
-        ROS_WARN("   profile vel. '%2.1f' is too small (now '%2.1f')", default_["profile_vel_deg_s"], goal_r_[id][PROFILE_VEL]/DEG);
+        ROS_WARN("   profile vel. '%2.1f' could not set (now '%2.1f')", default_["profile_vel_deg_s"], goal_r_[id][PROFILE_VEL]/DEG);
 
     WriteReturnDelayTime(id, default_["return_delay_time_us"]);
     if ( abs(ReadReturnDelayTime(id) - default_["return_delay_time_us"]) > 0.1 ) 

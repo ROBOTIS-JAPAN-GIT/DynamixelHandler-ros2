@@ -48,10 +48,10 @@ DynamixelHandler::DynamixelHandler() : Node("dynamixel_handler", rclcpp::NodeOpt
         ROS_INFO("  ------------ name '%s'", device_name.c_str());
         ROS_INFO("  -------- baudrate '%d'", baudrate);
         ROS_INFO("  --- latency_timer '%d'", latency_timer);
-    bool auto_unify_baudrate; this->get_parameter_or("init/baudrate_auto_set", auto_unify_baudrate, false);
-    if ( auto_unify_baudrate ) {
-        ROS_INFO(" Unifying all Dynamixels' baudrate");
-        UnifyBaudrate(static_cast<uint64_t>(baudrate));
+        bool auto_unify_baudrate; this->get_parameter_or("init/baudrate_auto_set", auto_unify_baudrate, false);
+        if ( auto_unify_baudrate ) {
+            ROS_INFO(" Unifying all Dynamixels' baudrate");
+            UnifyBaudrate(static_cast<uint64_t>(baudrate));
         }
     }
 
@@ -97,14 +97,15 @@ DynamixelHandler::DynamixelHandler() : Node("dynamixel_handler", rclcpp::NodeOpt
     int times_retry ; this->get_parameter_or("init/servo_auto_search.retry_times", times_retry , 5);
     int id_min      ; this->get_parameter_or("init/servo_auto_search.min_id"     , id_min      , 1);
     int id_max      ; this->get_parameter_or("init/servo_auto_search.max_id"     , id_max      , 35);
+    set<id_t> scan_id_set; for (int id=id_min; id<=id_max; id++) scan_id_set.insert(static_cast<id_t>(id));
     // id_set_の作成
     if ( num_expected>0 ) ROS_INFO(" '%d' servo(s) are expected", num_expected);
     else                 {ROS_WARN(" Expected servo number is not set."); ROS_WARN(" > Any number of Dynamixel is allowed");}
     ROS_INFO(" Auto scanning Dynamixel (id range '%d' to '%d') ...", id_min, id_max);
     ROS_INFO(" > series: X [%suse], P [%suse], PRO [%suse]", use_["x"]?"":"no ", use_["p"]?"":"no ", use_["pro"]?"":"no ");
     /* *********************** dynamixelを探索し，初期化する ***********************************/
-    /* */for (const auto id : dummy_id_list) DummyUpDynamixel(id);
-    /* */ScanDynamixels(id_min, id_max, num_expected, times_retry);
+    /* */for (const auto id : dummy_id_list) DummyUpDynamixel(id); // 最初にダミーモータを登録しておく．これにより，実際のモータの探索の際に，ダミーモータのIDをスキャン対象から外すことができる．
+    /* */tryAddDynamixels(scan_id_set, num_expected, times_retry);
     /* ***********************************************************************************/
     if( id_set_.size()==0 ) { // 見つからなかった場合は初期化失敗で終了
         ROS_ERROR(" Dynamixel is not found in USB device [%s]", dyn_comm_.port_name().c_str());
