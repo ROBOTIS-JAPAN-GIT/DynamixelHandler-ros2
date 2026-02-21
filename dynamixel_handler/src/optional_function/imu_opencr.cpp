@@ -105,13 +105,19 @@ DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(paren
 	
 	static auto& dyn_comm_ = parent_.dyn_comm_;
 
-	if ( !dyn_comm_.tryPing(id_imu_) ) {
+	// OpenCRのIMUの検出
+	if ( is_in(id_imu_, parent_.id_set_) ){ // すでに検出されたDynamixelのIDと被っていないか確認
+		ROS_WARN( "  * IMU ID [%d] is duplicated with Dynamixel ID", id_imu_);
+		ROS_WARN( " < ... IMU on OpenCR is failed to initialize > ");
+		return;
+	}
+	if ( !dyn_comm_.tryPing(id_imu_) ) { // OpenCRのIMUが通信に応答するか確認
 		ROS_WARN( "  * IMU ID [%d] is not found", id_imu_);
 		ROS_WARN( " < ... IMU on OpenCR is failed to initialize > ");
 		return;
 	}
 	auto opencr_num = dyn_comm_.tryRead(AddrCommon::model_number, id_imu_);
-	if ( opencr_num != model_number ) {
+	if ( opencr_num != model_number ) { // OpenCRのIMUが期待したmodel_numberか確認
 		ROS_WARN("  * IMU ID [%d] is mismatched in model_number (read [%d], expected [%d])",
 				 id_imu_, (int)opencr_num, (int)model_number);
 		ROS_WARN( " < ... IMU on OpenCR is failed to initialize > ");
@@ -121,6 +127,7 @@ DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(paren
 	ROS_INFO("    - coord. offset [roll, pitch, yaw] = [%.1f, %.1f, %.1f] deg", rpy_adjust_deg[0], rpy_adjust_deg[1], rpy_adjust_deg[2]);
 	ROS_INFO("    - '%s-handed' coordinate system", flip_z_axis_ ? "right" : "left");
 	
+	// ROS topicの設定
 	pub_imu_ = parent_.create_publisher<Imu>("dynamixel/imu/raw", 4);
 	sub_calib_ = parent_.create_generic_subscription(
 		"dynamixel/imu/calibration_gyro", "std_msgs/msg/Empty", rclcpp::QoS(10),
@@ -131,7 +138,7 @@ DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(paren
 			CallbackCalibGyro(std::make_shared<Empty>(msg));
 		}
 	);
-
+	
 	is_opencr_ready_ = true;
 	ROS_INFO( " < ............ IMU on OpenCR is initialized > ");
 }
