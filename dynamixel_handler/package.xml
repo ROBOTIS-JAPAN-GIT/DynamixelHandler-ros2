@@ -12,6 +12,8 @@
   <build_depend>python3-dev</build_depend>
 
   <depend>rclcpp</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
   <depend>dynamixel_handler_msgs</depend>
   <exec_depend>rclpy</exec_depend>
 

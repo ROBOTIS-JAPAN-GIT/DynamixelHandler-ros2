@@ -12,6 +12,7 @@ find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(dynamixel_handler_msgs REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+find_package(pybind11_vendor REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 
 # =============================== dynamixel_communicator =========================

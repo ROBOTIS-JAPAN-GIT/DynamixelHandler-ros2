@@ -2,7 +2,7 @@
 
 Robotis社の[Dynamixel](https://e-shop.robotis.co.jp/list.php?c_id=89)をROSから制御するための `dynamixel_handler`パッケージとその周辺パッケージを提供するリポジトリ.  
 
-ROS2(Humble)のみ対応，ROS1 ver は[こちら](https://github.com/ROBOTIS-JAPAN-GIT/DynamixelHandler-ros1).ただし，開発が分離しているので機能はやや異なる．
+ROS2(Humble, Jazzy)に対応，ROS1 ver は[こちら](https://github.com/ROBOTIS-JAPAN-GIT/DynamixelHandler-ros1).ただし，開発が分離しているので機能はやや異なる．
 
 X, P, Proシリーズに対応，X320シリーズ，Yシリーズは順次対応予定．
 

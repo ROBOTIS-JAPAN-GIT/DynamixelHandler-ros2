@@ -35,7 +35,7 @@ rclcpp::SubscriptionBase::SharedPtr CreateGenericSubscriptionWithTypedCallback(
     CallbackT&& callback) {
     return node->create_generic_subscription(
         topic_name, topic_type, rclcpp::QoS(qos_depth),
-        [callback = std::forward<CallbackT>(callback)](std::shared_ptr<rclcpp::SerializedMessage> serialized_msg) mutable {
+        [callback = std::forward<CallbackT>(callback)](std::shared_ptr<rclcpp::SerializedMessage> serialized_msg) {
             MsgT msg;
             rclcpp::Serialization<MsgT> serializer;
             serializer.deserialize_message(serialized_msg.get(), &msg);
