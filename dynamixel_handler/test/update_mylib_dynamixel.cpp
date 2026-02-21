@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -14,6 +15,9 @@ namespace {
 
 enum class Mode {
   Ping,
+  BroadcastPing,
+  BulkRead,
+  FastBulkRead,
   ReadSingle,
   ReadMulti,
   SyncReadSingle,
@@ -59,6 +63,9 @@ void print_usage(const char* argv0) {
       << "  --retry-interval <int>     retry interval ms (default: 1)\n"
       << "  --mode <name>              mode name:\n"
       << "                             ping\n"
+      << "                             broadcast_ping\n"
+      << "                             bulk_read\n"
+      << "                             fast_bulk_read\n"
       << "                             read_single\n"
       << "                             read_multi\n"
       << "                             sync_read_single\n"
@@ -103,6 +110,12 @@ bool parse_ids(const std::string& csv, std::vector<uint8_t>* ids) {
 bool parse_mode(const std::string& s, Mode* mode) {
   if (s == "ping") {
     *mode = Mode::Ping;
+  } else if (s == "broadcast_ping") {
+    *mode = Mode::BroadcastPing;
+  } else if (s == "bulk_read") {
+    *mode = Mode::BulkRead;
+  } else if (s == "fast_bulk_read") {
+    *mode = Mode::FastBulkRead;
   } else if (s == "read_single") {
     *mode = Mode::ReadSingle;
   } else if (s == "read_multi") {
@@ -125,6 +138,12 @@ std::string mode_name(Mode mode) {
   switch (mode) {
     case Mode::Ping:
       return "ping";
+    case Mode::BroadcastPing:
+      return "broadcast_ping";
+    case Mode::BulkRead:
+      return "bulk_read";
+    case Mode::FastBulkRead:
+      return "fast_bulk_read";
     case Mode::ReadSingle:
       return "read_single";
     case Mode::ReadMulti:
@@ -156,6 +175,19 @@ std::vector<uint8_t> scan_ids(DynamixelCommunicator& comm, int min_id, int max_i
   std::vector<uint8_t> ids;
   min_id = std::max(min_id, 0);
   max_id = std::min(max_id, 252);
+  (void)comm.Ping_broadcast();
+  const auto id_model_map_all = comm.ping_id_model_map_last_read();
+  for (const auto& id_model : id_model_map_all) {
+    if (id_model.first < static_cast<uint8_t>(min_id) || id_model.first > static_cast<uint8_t>(max_id)) {
+      continue;
+    }
+    ids.push_back(id_model.first);
+  }
+  if (!ids.empty()) {
+    return ids;
+  }
+
+  // fallback for environments where broadcast ping is unavailable
   for (int id = min_id; id <= max_id; ++id) {
     if (comm.Ping(static_cast<uint8_t>(id))) {
       ids.push_back(static_cast<uint8_t>(id));
@@ -180,6 +212,43 @@ IterResult run_iteration(
         }
       }
       result.full_success = (result.success_items == ids.size());
+      return result;
+    }
+
+    case Mode::BroadcastPing: {
+      if (ids.empty()) {
+        result.full_success = true;
+        return result;
+      }
+      result.packets = 1;
+      const bool ping_ok = !comm.Ping_broadcast().empty();
+      const auto id_model_map = comm.ping_id_model_map_last_read();
+      for (uint8_t id : ids) {
+        if (id_model_map.count(id)) {
+          ++result.success_items;
+        }
+      }
+      result.full_success = ping_ok && (result.success_items == ids.size());
+      return result;
+    }
+
+    case Mode::BulkRead: {
+      result.packets = 1;
+      std::map<uint8_t, DynamixelAddress> id_addr_map;
+      for (uint8_t id : ids) id_addr_map.emplace(id, AddrCommon::model_number);
+      const auto values = comm.BulkRead(id_addr_map);
+      result.success_items = values.size();
+      result.full_success = !comm.timeout_last_read() && !comm.comm_error_last_read() && values.size() == ids.size();
+      return result;
+    }
+
+    case Mode::FastBulkRead: {
+      result.packets = 1;
+      std::map<uint8_t, DynamixelAddress> id_addr_map;
+      for (uint8_t id : ids) id_addr_map.emplace(id, AddrCommon::model_number);
+      const auto values = comm.BulkRead_fast(id_addr_map);
+      result.success_items = values.size();
+      result.full_success = !comm.timeout_last_read() && !comm.comm_error_last_read() && values.size() == ids.size();
       return result;
     }
 
