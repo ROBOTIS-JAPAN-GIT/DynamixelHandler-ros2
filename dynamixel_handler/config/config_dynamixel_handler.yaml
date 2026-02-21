@@ -4,11 +4,11 @@
     # 通信機器の設定
         device_name: /dev/ttyUSB0 # 通信するデバイス名
         baudrate: 1000000 # 通信速度
-        latency_timer: 1 # 通信のインターバル
+        latency_timer: 16 # 通信のインターバル
     # サーボの設定
         init/dummy_servo_list: [-1] # ダミーのサーボを作成するIDのリスト,同じIDのサーボが存在する場合でもダミーが優先される． 255は無視される．
         init/baudrate_auto_set: false # 探索前に，全てのサーボと全てのBaudrateに対して，baudrateの書き込みをするかどうか
-        init/uesd_servo_series: {X: true, P: false, Pro: false} # 使用するサーボのシリーズ
+        init/used_servo_series: {X: true, P: false, Pro: false} # 使用するサーボのシリーズ
         init/expected_servo_num: 0
         init/servo_auto_search: {min_id: 0, max_id: 10, retry_times: 0} # サーボのIDを自動で探索するかどうか
         init/hardware_error_auto_clean: true # 初期化時に Hardware error を自動でクリアするかどうか
