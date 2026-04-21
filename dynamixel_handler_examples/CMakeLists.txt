@@ -11,11 +11,13 @@ endif()
 ## Find packages
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(dynamixel_handler_msgs REQUIRED)
 
 ## Specify dependencies
 set(dependencies
   rclcpp
+  sensor_msgs
   dynamixel_handler_msgs
 )
 
@@ -48,12 +50,19 @@ add_executable(example4
 
 ament_target_dependencies(example4 ${dependencies})
 
+add_executable(example0
+  src/example0.cpp
+)
+
+ament_target_dependencies(example0 ${dependencies})
+
 ## Install
 install(TARGETS
   example1
   example2
   example3
   example4
+  example0
   DESTINATION lib/${PROJECT_NAME}
 )
 

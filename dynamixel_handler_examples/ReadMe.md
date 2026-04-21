@@ -12,6 +12,7 @@ source install/setup.bash
 
 ## Abstract of each example
 
+- `example0`: `sensor_msgs/msg/JointState` と `dynamixel_handler_msgs` を相互変換するノード (`position/velocity` は `rad` 系, `effort` は `A`)
 - `example1`: 最小構成（関数スタイル）で `DxlCommandsX` と `DxlStates` の基本を確認
 - `example2`: `example1` と同じ内容を class スタイルで記述
 - `example3`: `DxlCommandsX`　の `velocity_control` と `limit.velocity_~` を使った運用例

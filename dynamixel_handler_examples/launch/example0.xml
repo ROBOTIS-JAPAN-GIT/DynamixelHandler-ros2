@@ -1,0 +1,10 @@
+<launch>
+    <set_env name="RCUTILS_CONSOLE_OUTPUT_FORMAT" value="{time}: {message} "/>
+    <set_env name="RCUTILS_COLORIZED_OUTPUT" value="1"/>
+
+    <arg name="name_space" default=""/>
+    <arg name="name_this_pkg" default="dynamixel_handler_examples"/>
+
+    <node pkg="$(var name_this_pkg)" exec="example0" name="example0_bridge" namespace="$(var name_space)" output="screen"/>
+
+</launch>
