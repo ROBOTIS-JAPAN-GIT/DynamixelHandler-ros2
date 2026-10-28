@@ -3,6 +3,7 @@
 #include "myUtils/make_iterator_convenient.hpp"
 #include "dynamixel_handler.hpp"
 #include "dynamixel_handler_msgs/msg/dxl_states.hpp"
+#include "optional_function/imu_dxmio.hpp"
 #include "optional_function/imu_opencr.hpp"
 #include "optional_function/external_port.hpp"
 
@@ -147,8 +148,8 @@ DynamixelHandler::DynamixelHandler() : Node("dynamixel_handler", rclcpp::NodeOpt
     bool use_ex_port; get_parameter_or("option/external_port.use", use_ex_port, false);
     if ( use_ex_port ) external_port_ = std::make_unique<ExternalPort>(*this);
 
-    // bool use_imu_DXIMO; get_parameter_or("use/BTE098_DXMIO_with_IMU", use_imu_DXIMO, false);
-    // if ( use_imu_DXIMO ) imu_dximo_ = std::make_unique<DynamixelIMU_DXIMO>(*this);
+    bool use_imu_dxmio; get_parameter_or("option/imu_dxmio.use", use_imu_dxmio, false);
+    if ( use_imu_dxmio ) imu_dxmio_ = std::make_unique<ImuDXMIO>(*this);
 
     bool use_imu_opencr; get_parameter_or("option/imu_opencr.use", use_imu_opencr, false);
     if ( use_imu_opencr ) imu_opencr_ = std::make_unique<ImuOpenCR>(*this);
@@ -172,6 +173,7 @@ void DynamixelHandler::MainLoop(){
 /* 処理時間時間の計測 */ auto s_total = system_clock::now();
     //* Additional function
     if (external_port_) external_port_->MainProcess();
+    if (imu_dxmio_    ) imu_dxmio_->MainProcess();
     if (imu_opencr_   ) imu_opencr_->MainProcess();
 
     //* topicをSubscribe & Dynamixelへ目標角をWrite

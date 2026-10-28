@@ -408,6 +408,8 @@ class DynamixelHandler : public rclcpp::Node {
 
         class ExternalPort; // XH540とPシリーズに搭載されている外部ポートを使用するためのクラス，実際の宣言と定義は別ファイル
         std::unique_ptr<ExternalPort> external_port_; //
+        class ImuDXMIO;
+        std::unique_ptr<ImuDXMIO> imu_dxmio_;
         class ImuOpenCR;
         std::unique_ptr<ImuOpenCR> imu_opencr_; //
 };

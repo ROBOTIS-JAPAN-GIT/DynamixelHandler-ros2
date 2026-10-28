@@ -18,36 +18,36 @@ using namespace std::string_literals;
     {{ RCLCPP_FATAL(parent_.get_logger(), __VA_ARGS__); rclcpp::shutdown(); std::exit(EXIT_FAILURE); }}
 
 using OpenCRAddress = DynamixelAddress;
-OpenCRAddress addr_calib(64, DynamixelDataType::TYPE_UINT8);
-OpenCRAddress addr_gx(76, DynamixelDataType::TYPE_INT16);
-OpenCRAddress addr_gy(78, DynamixelDataType::TYPE_INT16);
-OpenCRAddress addr_gz(80, DynamixelDataType::TYPE_INT16);
-OpenCRAddress addr_ax(82, DynamixelDataType::TYPE_INT16);
-OpenCRAddress addr_ay(84, DynamixelDataType::TYPE_INT16);
-OpenCRAddress addr_az(86, DynamixelDataType::TYPE_INT16);
-OpenCRAddress addr_quat_w(88, DynamixelDataType::TYPE_INT32);
-OpenCRAddress addr_quat_x(92, DynamixelDataType::TYPE_INT32);
-OpenCRAddress addr_quat_y(96, DynamixelDataType::TYPE_INT32);
-OpenCRAddress addr_quat_z(100, DynamixelDataType::TYPE_INT32);
+static OpenCRAddress addr_calib(64, DynamixelDataType::TYPE_UINT8);
+static OpenCRAddress addr_gx(76, DynamixelDataType::TYPE_INT16);
+static OpenCRAddress addr_gy(78, DynamixelDataType::TYPE_INT16);
+static OpenCRAddress addr_gz(80, DynamixelDataType::TYPE_INT16);
+static OpenCRAddress addr_ax(82, DynamixelDataType::TYPE_INT16);
+static OpenCRAddress addr_ay(84, DynamixelDataType::TYPE_INT16);
+static OpenCRAddress addr_az(86, DynamixelDataType::TYPE_INT16);
+static OpenCRAddress addr_quat_w(88, DynamixelDataType::TYPE_INT32);
+static OpenCRAddress addr_quat_x(92, DynamixelDataType::TYPE_INT32);
+static OpenCRAddress addr_quat_y(96, DynamixelDataType::TYPE_INT32);
+static OpenCRAddress addr_quat_z(100, DynamixelDataType::TYPE_INT32);
 static constexpr uint8_t CALIB_GYRO_CMD = 1;
 static constexpr double res_acc = 2.0 / 32768.0 * 9.8;      // 2g [m/s^2]
 static constexpr double res_gyro = 2000.0 / 32768.0 * 3.14159/180;  // 2000dps [rad/s]
 
 #include <cstring>
-float int32_bits_to_float(int32_t data) {
+static float int32_bits_to_float(int32_t data) {
 	uint32_t bits = static_cast<uint32_t>(data);
 	float result = 0.0f;
 	std::memcpy(&result, &bits, sizeof(float));
 	return result;
 }
 
-array<double, 4> normalize_quat(const array<double, 4>& q) {
+static array<double, 4> normalize_quat(const array<double, 4>& q) {
 	const double norm = std::sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
 	if ( norm < 1.0e-12 ) return {0.0, 0.0, 0.0, 1.0};
 	return {q[0] / norm, q[1] / norm, q[2] / norm, q[3] / norm};
 }
 
-array<double, 4> multiply_quat(const array<double, 4>& q1, const array<double, 4>& q2) {
+static array<double, 4> multiply_quat(const array<double, 4>& q1, const array<double, 4>& q2) {
 	return {
 		q1[3] * q2[0] + q1[0] * q2[3] + q1[1] * q2[2] - q1[2] * q2[1],
 		q1[3] * q2[1] - q1[0] * q2[2] + q1[1] * q2[3] + q1[2] * q2[0],
@@ -56,14 +56,14 @@ array<double, 4> multiply_quat(const array<double, 4>& q1, const array<double, 4
 	};
 }
 
-array<double, 3> rotate_vector_by_quat(const array<double, 3>& v, const array<double, 4>& q) {
+static array<double, 3> rotate_vector_by_quat(const array<double, 3>& v, const array<double, 4>& q) {
 	const array<double, 4> q_vec = {v[0], v[1], v[2], 0.0};
 	const array<double, 4> q_conj = {-q[0], -q[1], -q[2], q[3]};
 	const array<double, 4> q_rotated = multiply_quat(multiply_quat(q, q_vec), q_conj);
 	return {q_rotated[0], q_rotated[1], q_rotated[2]};
 }
 
-array<double, 4> convert_rpy_to_quat(double roll_deg, double pitch_deg, double yaw_deg) {
+static array<double, 4> convert_rpy_to_quat(double roll_deg, double pitch_deg, double yaw_deg) {
 	static constexpr double DEG2RAD = 3.14159265358979323846 / 180.0;
 	const double roll = roll_deg * DEG2RAD;
 	const double pitch = pitch_deg * DEG2RAD;
@@ -117,6 +117,11 @@ DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(paren
 		return;
 	}
 	auto opencr_num = dyn_comm_.tryRead(AddrCommon::model_number, id_imu_);
+	if ( dyn_comm_.timeout_last_read() || dyn_comm_.comm_error_last_read() ) {
+		ROS_WARN("  * IMU ID [%d] failed to read model_number", id_imu_);
+		ROS_WARN( " < ... IMU on OpenCR is failed to initialize > ");
+		return;
+	}
 	if ( opencr_num != model_number ) { // OpenCRのIMUが期待したmodel_numberか確認
 		ROS_WARN("  * IMU ID [%d] is mismatched in model_number (read [%d], expected [%d])",
 				 id_imu_, (int)opencr_num, (int)model_number);

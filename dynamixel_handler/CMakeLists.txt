@@ -92,6 +92,7 @@ add_executable(
 	src/dynamixel_handler.cpp
 
   src/optional_function/external_port.cpp
+  src/optional_function/imu_dxmio.cpp
   src/optional_function/imu_opencr.cpp
 
 	src/main.cpp

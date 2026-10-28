@@ -54,6 +54,15 @@
             verbose/callback: false
             verbose/write:    false
             verbose/read:     {raw: false, err: false}
+        option/imu_dxmio:
+            use: false
+            pub_ratio:    2
+            dxmio_id:   200
+            model_number: 16420 # 0x4024, E097B_SMPL1.2 dxmio3_dxl
+            frame_id: base_link
+            adjust/rpy_deg: [0.0, 0.0, 0.0]
+            adjust/flip_z_axis: false
+            verbose/read:     {raw: false, err: false}
         option/imu_opencr:
             use: false
             pub_ratio:    2
