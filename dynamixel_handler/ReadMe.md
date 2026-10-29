@@ -44,7 +44,7 @@ Dynamixelとやり取りを行うライブラリは[別のリポジトリ](https
 
 - **src/optional_function/**  
   optional機能の実装ディレクトリ．
-  現在は `external_port.cpp/.hpp` と `imu_opencr.cpp/.hpp` を含む．
+  `external_port.cpp/.hpp`，`imu_dxmio.cpp/.hpp`，`imu_opencr.cpp/.hpp` を含む．
 
 - **src/sub_node/dynamixel_unify_baudrate.py**  
   baudrate一括変更ノード本体（Python）．

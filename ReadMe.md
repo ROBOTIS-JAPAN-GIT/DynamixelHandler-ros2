@@ -1306,14 +1306,15 @@ present値のみ高速化のために各アドレス(pwm, current, ... , tempera
 ## Optional機能
 
 Dynamixel本体の標準的な制御（status/goal/present/gain/limit/error）とは独立した拡張機能．  
-現状は `External Port` と `OpenCR IMU` に対応している．
+`External Port`，`DXMIO IMU`，`OpenCR IMU` に対応している．
 
 ### 概要
 
 | Feature       | 有効化パラメータ                   | Publish                        | Subscribe                        | 初期化時の挙動      |
 | ------------- | -------------------------- | ------------------------------ | -------------------------------- | ------------ |
 | External Port | `option/external_port.use` | `dynamixel/external_port/read` | `dynamixel/external_port/write`  | 対象サーボが無くても継続 |
-| OpenCR IMU    | `option/imu_opencr.use`    | `dynamixel/imu/raw`            | `dynamixel/imu/calibration_gyro` | WARNを出して継続   |
+| DXMIO IMU     | `option/imu_dxmio.use`    | `dynamixel/dxmio_imu/read`     | `dynamixel/dxmio_imu/write`      | WARNを出して継続   |
+| OpenCR IMU    | `option/imu_opencr.use`   | `dynamixel/opencr_imu/read`    | `dynamixel/imu/calibration_gyro` | WARNを出して継続   |
 
 ### External Port
 
@@ -1372,6 +1373,79 @@ option/external_port:
 | `mode`    | `string[]`                | ポートのモード．文字列で指定 (詳細はDxlExternalPort型の定数を参照)         |
 | `data`    | `int16[]`                 | ポートのデータ．モードが digital out の場合のみ有効．(0: Low, 1: High) |
 
+### DXMIO IMU
+
+DXMIO上のIMUから姿勢・角速度・加速度を読み取り，重力ベクトル・温度とともに配信するoptional機能．
+複数台のDXMIOを1つのトピックで扱い，個体ごとの座標補正や終端抵抗はwriteトピックから設定する．
+
+DXMIOをサーボと同じ通信バスに接続し，IDが他の機器と重複しないように設定する．baudrateはノードの `baudrate` と一致させること．
+利用する場合は `option/imu_dxmio.use` を `true` に設定する．
+
+```yaml
+option/imu_dxmio:
+    use: false
+    pub_ratio/motion: 2  # 姿勢・角速度・加速度を読む周期（loop回数基準）
+    pub_ratio/extra: 100 # 重力の大きさ・温度を読む周期（loop回数基準）
+    model_number: 16420  # 自動検出するDXMIOのモデル番号（0x4024）
+    verbose/callback: false
+    verbose/write: false
+    verbose/read: {raw: false, err: false}
+```
+
+起動時に接続機器を自動検出し，`model_number` が一致するDXMIOを登録する．DXMIOのID指定や，サーボのID探索範囲の拡張は不要．対象が見つからない場合はWARNを出し，DXMIO機能を無効にしてノードの動作を続ける．
+
+`pub_ratio/motion` と `pub_ratio/extra` は，それぞれ何loopに1回読み取るかを指定する．例えば `loop_rate: 200` で上記の設定を使うと，motionは100 Hz，extraは2 Hzになる．`0` にすると該当グループの周期読取りを無効化する．
+
+#### `/dynamixel/dxmio_imu/read` ([`DxmioImu`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxmioimu-type))
+
+検出したDXMIOの測定値と設定値を配信する．まず以下で `id_list` を確認できる．
+
+```bash
+ros2 topic echo --flow-style /dynamixel/dxmio_imu/read
+```
+
+各配列は `id_list` と同じ順で対応する．例えば `id_list: [200, 201]` の場合，`data[0]` はID200，`data[1]` はID201のIMUデータになる．配列の順序を固定値で仮定せず，`id_list` との対応で取り出すこと．
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `stamp` | `builtin_interfaces/Time` | 配信時刻 |
+| `id_list` | `uint16[]` | DXMIOのID |
+| `data` | `sensor_msgs/Imu[]` | 補正後の姿勢（Quaternion），角速度 [rad/s]，重力を含む加速度 [m/s²] |
+| `gravity` | `geometry_msgs/Vector3[]` | `data` と同じ座標系で表した重力ベクトル [m/s²] |
+| `temperature_degc` | `float64[]` | 温度 [degC] |
+| `frame_id` | `string[]` | 出力座標系名．`data` の `header.frame_id` と同じ値 |
+| `flip_z_axis` | `bool[]` | 座標軸規約の変換設定 |
+| `adjust_rpy_deg` | `geometry_msgs/Vector3[]` | 固定回転の設定．x=roll，y=pitch，z=yaw [deg] |
+| `terminator` | `bool[]` | 読戻したRS-485終端抵抗の状態．trueで有効，falseで無効 |
+
+motionまたはextraの読取りに成功したとき，および終端抵抗の読戻しに成功したときに配信する．配信には全対象IDの保持値を載せるため，`data` の `header.stamp` で各IDの最後のmotion読取成功時刻を確認する．メッセージ全体の `stamp` は配信時刻であり，測定時刻とは異なる．
+
+重力ベクトルは，motionで読んだQuaternionから方向を求め，extraで読んだ重力の大きさを掛けて算出する．motionとextraは別周期で更新される．
+
+#### `/dynamixel/dxmio_imu/write` ([`DxmioImu`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxmioimu-type))
+
+`id_list` で対象のDXMIOを指定し，変更する設定の配列だけを送る．各設定の配列は `id_list` と同じ長さ・同じ順にする．空配列・長さの異なる配列は変更なし，未検出のIDは無視する．測定値と `stamp` はwriteでは使用しない．
+
+| Field | 設定内容 | 初期値・保存先 |
+| ----- | -------- | ------------- |
+| `frame_id` | 出力座標系名 | `dxmio_imu_<ID>`．ノード上で保持 |
+| `flip_z_axis` | Z軸方向の反転を伴う座標軸規約の変換 | false．ノード上で保持 |
+| `adjust_rpy_deg` | roll，pitch，yawの順の固定回転 [deg] | x=y=z=0．ノード上で保持 |
+| `terminator` | RS-485終端抵抗の有効・無効 | 起動時に機器から読み取る．変更時は機器へ不揮発保存 |
+
+以下はID200と201に別々の座標系名・補正を設定する例．IDはreadの `id_list` で確認した値に置き換える．`terminator` は省略しているため変更しない．
+
+```bash
+ros2 topic pub --once /dynamixel/dxmio_imu/write dynamixel_handler_msgs/msg/DxmioImu \
+  "{id_list: [200, 201], frame_id: [imu_front, imu_rear],
+    flip_z_axis: [false, true],
+    adjust_rpy_deg: [{x: 0.0, y: 0.0, z: 0.0}, {x: 0.0, y: 0.0, z: 180.0}]}"
+```
+
+変更した設定値はreadで確認できる．座標補正は軸規約の変換，固定回転の順に，次のmotion読取成功時から測定値へ適用する．設定の受信だけでは配信しない．
+
+`frame_id`，`flip_z_axis`，`adjust_rpy_deg` はノード再起動時に初期値へ戻る．終端抵抗はノード起動時に変更せず，writeで変更すると機器へ書込み・不揮発保存・読戻しを行う．保存に失敗した場合はWARNを出すため，readの状態に加えてログも確認すること．
+
 ### OpenCR IMU
 
 OpenCR上のIMUを `sensor_msgs/msg/Imu` として publish する optional 機能．
@@ -1379,10 +1453,10 @@ OpenCR上のIMUを `sensor_msgs/msg/Imu` として publish する optional 機�
 ```yaml
 option/imu_opencr:
     use: false
-    opencr_id: 40
-    frame_id: base_link
     pub_ratio: 2
+    opencr_id: 40
     model_number: 0
+    frame_id: base_link
     adjust/rpy_deg: [0.0, 0.0, 180.0]
     adjust/flip_z_axis: true
     verbose/callback: false
@@ -1390,14 +1464,14 @@ option/imu_opencr:
     verbose/read: {raw: false, err: false}
 ```
 
-- Publish: `dynamixel/imu/raw` (`sensor_msgs/msg/Imu`)
+- Publish: `dynamixel/opencr_imu/read` (`sensor_msgs/msg/Imu`)
 - Subscribe: `dynamixel/imu/calibration_gyro` (`std_msgs/msg/Empty`)
 - 起動時に `opencr_id` への `ping` と `model_number` を確認し，不一致時はWARNを出して機能を無効化
 - `calibration_gyro` 受信時はOpenCRへ校正コマンドを書き込み，現状実装では5秒待機
 - `adjust/rpy_deg` と `adjust/flip_z_axis` で座標補正を適用
 - OpenCRファームのControl Tableアドレスと `src/optional_function/imu_opencr.cpp` は必ず対応させること
 
-#### `dynamixel/imu/raw` (`sensor_msgs/msg/Imu`)
+#### `dynamixel/opencr_imu/read` (`sensor_msgs/msg/Imu`)
 
 `loop_rate` に対して `pub_ratio` ごとに read を実行し，read 成功時のみ publish する．
 
