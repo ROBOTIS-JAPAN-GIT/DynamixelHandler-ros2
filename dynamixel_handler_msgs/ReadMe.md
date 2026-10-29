@@ -966,7 +966,7 @@ string MODE_UNSET               = "unset"   # 指定ポートのモードの設�
 
 有効化・読取周期・コマンドラインでの使用例は[DXMIO IMUの説明](../ReadMe.md#dxmio-imu)を参照．
 各配列は `id_list` と同じ順で対応し，`data[i]` は `id_list[i]` のIMUデータを表す．
-writeでは `id_list` と，変更する `frame_id` / `flip_z_axis` / `adjust_rpy_deg` / `terminator` の配列だけを指定する．省略した設定は変更しない．
+設定変更は，対象のDXMIOのIDを `id_list` に，設定値を同じ順に並べて `/dynamixel/dxmio_imu/write` へ送信する．設定できる項目は `frame_id`，`flip_z_axis`，`adjust_rpy_deg`，`terminator` である．
 
 ### Topic type detail
 
@@ -989,5 +989,5 @@ geometry_msgs/Vector3[] adjust_rpy_deg # x=roll, y=pitch, z=yaw [deg]
 bool[] terminator
 ```
 
-readの `stamp` は配信時刻，`data[i].header.stamp` は各DXMIOの最後のmotion読取成功時刻を表す．
-writeでは `stamp`，`data`，`gravity`，`temperature_degc` は使用しない．
+readの `stamp` は配信時刻，`data[i].header.stamp` は各DXMIOの姿勢・角速度・加速度を最後に取得した時刻を表す．
+`data` と `gravity` は取付向きの設定に従い，`frame_id` で指定した出力座標系の値になる．`temperature_degc` はIMU内部の[ジャイロセンサ温度](https://www.ceva-ip.com/wp-content/uploads/SH-2-Reference-Manual.pdf#page=68) [degC]を表す．

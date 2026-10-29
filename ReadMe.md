@@ -1375,17 +1375,17 @@ option/external_port:
 
 ### DXMIO IMU
 
-DXMIO上のIMUから姿勢・角速度・加速度を読み取り，重力ベクトル・温度とともに配信するoptional機能．
+DXMIO上のIMUから姿勢・角速度・加速度を読み取り，重力ベクトル・IMU内部温度とともに配信するoptional機能．
 複数台のDXMIOを1つのトピックで扱い，個体ごとの座標補正や終端抵抗はwriteトピックから設定する．
 
-DXMIOをサーボと同じ通信バスに接続し，IDが他の機器と重複しないように設定する．baudrateはノードの `baudrate` と一致させること．
+DXMIOをサーボと同じ通信バスに接続し，IDが他の機器と重複しないように設定する．DXMIO の baudrate はノードの `baudrate` と一致させること．
 利用する場合は `option/imu_dxmio.use` を `true` に設定する．
 
 ```yaml
 option/imu_dxmio:
     use: false
     pub_ratio/motion: 2  # 姿勢・角速度・加速度を読む周期（loop回数基準）
-    pub_ratio/extra: 100 # 重力の大きさ・温度を読む周期（loop回数基準）
+    pub_ratio/extra: 100 # 重力の大きさ・IMU内部温度を読む周期（loop回数基準）
     model_number: 16420  # 自動検出するDXMIOのモデル番号（0x4024）
     verbose/callback: false
     verbose/write: false
@@ -1393,47 +1393,49 @@ option/imu_dxmio:
 ```
 
 起動時に接続機器を自動検出し，`model_number` が一致するDXMIOを登録する．DXMIOのID指定や，サーボのID探索範囲の拡張は不要．対象が見つからない場合はWARNを出し，DXMIO機能を無効にしてノードの動作を続ける．
+現状は異なる model number の DXMIO を併用することはできない．
 
 `pub_ratio/motion` と `pub_ratio/extra` は，それぞれ何loopに1回読み取るかを指定する．例えば `loop_rate: 200` で上記の設定を使うと，motionは100 Hz，extraは2 Hzになる．`0` にすると該当グループの周期読取りを無効化する．
 
 #### `/dynamixel/dxmio_imu/read` ([`DxmioImu`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxmioimu-type))
 
-検出したDXMIOの測定値と設定値を配信する．まず以下で `id_list` を確認できる．
+検出したDXMIOの測定値と設定値を配信する．
+以下のコマンドで確認可能である．
 
 ```bash
 ros2 topic echo --flow-style /dynamixel/dxmio_imu/read
 ```
 
-各配列は `id_list` と同じ順で対応する．例えば `id_list: [200, 201]` の場合，`data[0]` はID200，`data[1]` はID201のIMUデータになる．配列の順序を固定値で仮定せず，`id_list` との対応で取り出すこと．
+各配列は `id_list` と同じ順で対応する．例えば `id_list: [200, 201]` の場合，`data[0]` はID200，`data[1]` はID201のIMUデータになる．
+
+IMUの取付向きに合わせて，センサの軸をロボット側で使う座標系へ変換できる．`frame_id` はその座標系の名前，`flip_z_axis` と `adjust_rpy_deg` は軸の向きを合わせるための設定である．姿勢・角速度・加速度・重力ベクトルは，この出力座標系で表した値になる．
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
 | `stamp` | `builtin_interfaces/Time` | 配信時刻 |
 | `id_list` | `uint16[]` | DXMIOのID |
-| `data` | `sensor_msgs/Imu[]` | 補正後の姿勢（Quaternion），角速度 [rad/s]，重力を含む加速度 [m/s²] |
-| `gravity` | `geometry_msgs/Vector3[]` | `data` と同じ座標系で表した重力ベクトル [m/s²] |
-| `temperature_degc` | `float64[]` | 温度 [degC] |
+| `data` | `sensor_msgs/Imu[]` | 出力座標系での姿勢（Quaternion），角速度 [rad/s]，重力を含む加速度 [m/s²] |
+| `gravity` | `geometry_msgs/Vector3[]` | 出力座標系での重力ベクトル [m/s²] |
+| `temperature_degc` | `float64[]` | IMU内部の[ジャイロセンサ温度](https://www.ceva-ip.com/wp-content/uploads/SH-2-Reference-Manual.pdf#page=68) [degC] |
 | `frame_id` | `string[]` | 出力座標系名．`data` の `header.frame_id` と同じ値 |
 | `flip_z_axis` | `bool[]` | 座標軸規約の変換設定 |
 | `adjust_rpy_deg` | `geometry_msgs/Vector3[]` | 固定回転の設定．x=roll，y=pitch，z=yaw [deg] |
-| `terminator` | `bool[]` | 読戻したRS-485終端抵抗の状態．trueで有効，falseで無効 |
+| `terminator` | `bool[]` | RS-485終端抵抗の有効・無効．trueで有効，falseで無効 |
 
-motionまたはextraの読取りに成功したとき，および終端抵抗の読戻しに成功したときに配信する．配信には全対象IDの保持値を載せるため，`data` の `header.stamp` で各IDの最後のmotion読取成功時刻を確認する．メッセージ全体の `stamp` は配信時刻であり，測定時刻とは異なる．
-
-重力ベクトルは，motionで読んだQuaternionから方向を求め，extraで読んだ重力の大きさを掛けて算出する．motionとextraは別周期で更新される．
+DXMIOからいずれかの測定値または終端抵抗の状態を取得できたときに配信される．各配列には，配信対象すべてのIMUについて，最後に取得できた値が入る．`data[i].header.stamp` はそのIMUの姿勢・角速度・加速度を最後に取得した時刻，`stamp` はメッセージの配信時刻を表す．
 
 #### `/dynamixel/dxmio_imu/write` ([`DxmioImu`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxmioimu-type))
 
-`id_list` で対象のDXMIOを指定し，変更する設定の配列だけを送る．各設定の配列は `id_list` と同じ長さ・同じ順にする．空配列・長さの異なる配列は変更なし，未検出のIDは無視する．測定値と `stamp` はwriteでは使用しない．
+設定したいDXMIOのIDを `id_list` に，そのIDに適用する値を各設定項目に指定する．複数台をまとめて設定する場合は，IDと設定値を同じ順に並べる．変更したい設定項目だけを指定できる．
 
-| Field | 設定内容 | 初期値・保存先 |
+| Field | 設定内容 | 初期値 |
 | ----- | -------- | ------------- |
-| `frame_id` | 出力座標系名 | `dxmio_imu_<ID>`．ノード上で保持 |
-| `flip_z_axis` | Z軸方向の反転を伴う座標軸規約の変換 | false．ノード上で保持 |
-| `adjust_rpy_deg` | roll，pitch，yawの順の固定回転 [deg] | x=y=z=0．ノード上で保持 |
-| `terminator` | RS-485終端抵抗の有効・無効 | 起動時に機器から読み取る．変更時は機器へ不揮発保存 |
+| `frame_id` | 出力座標系名 | `dxmio_imu_<ID>` |
+| `flip_z_axis` | Z軸方向の反転を伴う座標軸規約の変換 | false |
+| `adjust_rpy_deg` | 出力座標系へ軸を合わせる回転角．x=roll，y=pitch，z=yaw [deg] | x=y=z=0 |
+| `terminator` | RS-485終端抵抗の有効・無効 | DXMIO本体の設定 |
 
-以下はID200と201に別々の座標系名・補正を設定する例．IDはreadの `id_list` で確認した値に置き換える．`terminator` は省略しているため変更しない．
+ID200と201のIMUに，それぞれの出力座標系名と取付向きを設定する例．
 
 ```bash
 ros2 topic pub --once /dynamixel/dxmio_imu/write dynamixel_handler_msgs/msg/DxmioImu \
@@ -1442,9 +1444,9 @@ ros2 topic pub --once /dynamixel/dxmio_imu/write dynamixel_handler_msgs/msg/Dxmi
     adjust_rpy_deg: [{x: 0.0, y: 0.0, z: 0.0}, {x: 0.0, y: 0.0, z: 180.0}]}"
 ```
 
-変更した設定値はreadで確認できる．座標補正は軸規約の変換，固定回転の順に，次のmotion読取成功時から測定値へ適用する．設定の受信だけでは配信しない．
+設定した座標系名や角度はreadで確認できる．姿勢・角速度・加速度・重力ベクトルは，次に姿勢の値が更新されるときから，新しい取付向きの設定に従った値になる．
 
-`frame_id`，`flip_z_axis`，`adjust_rpy_deg` はノード再起動時に初期値へ戻る．終端抵抗はノード起動時に変更せず，writeで変更すると機器へ書込み・不揮発保存・読戻しを行う．保存に失敗した場合はWARNを出すため，readの状態に加えてログも確認すること．
+`frame_id`，`flip_z_axis`，`adjust_rpy_deg` はノードを再起動すると表の初期値へ戻る．終端抵抗の設定はDXMIOの電源を入れ直しても維持される．
 
 ### OpenCR IMU
 
@@ -1468,7 +1470,7 @@ option/imu_opencr:
 - Subscribe: `dynamixel/imu/calibration_gyro` (`std_msgs/msg/Empty`)
 - 起動時に `opencr_id` への `ping` と `model_number` を確認し，不一致時はWARNを出して機能を無効化
 - `calibration_gyro` 受信時はOpenCRへ校正コマンドを書き込み，現状実装では5秒待機
-- `adjust/rpy_deg` と `adjust/flip_z_axis` で座標補正を適用
+- `adjust/rpy_deg` と `adjust/flip_z_axis` は，IMUの取付向きに合わせて測定値の軸を利用する座標系へ合わせる設定．`frame_id` はこの出力座標系の名前
 - OpenCRファームのControl Tableアドレスと `src/optional_function/imu_opencr.cpp` は必ず対応させること
 
 #### `dynamixel/opencr_imu/read` (`sensor_msgs/msg/Imu`)
@@ -1479,9 +1481,9 @@ option/imu_opencr:
 | -------------------------------- | ------------------------- | ---------------------------- |
 | `header.stamp`                   | `builtin_interfaces/Time` | publish時刻 (`now`)            |
 | `header.frame_id`                | `string`                  | `option/imu_opencr.frame_id` |
-| `orientation.{x,y,z,w}`          | `float64`                 | 補正後クォータニオン（正規化済み）            |
-| `angular_velocity.{x,y,z}`       | `float64`                 | 補正後角速度                       |
-| `linear_acceleration.{x,y,z}`    | `float64`                 | 補正後加速度                       |
+| `orientation.{x,y,z,w}`          | `float64`                 | 出力座標系での姿勢（正規化済みQuaternion） |
+| `angular_velocity.{x,y,z}`       | `float64`                 | 出力座標系での角速度 [rad/s] |
+| `linear_acceleration.{x,y,z}`    | `float64`                 | 出力座標系での重力を含む加速度 [m/s²] |
 | `orientation_covariance`         | `float64[9]`              | 現状は未設定（デフォルト値）               |
 | `angular_velocity_covariance`    | `float64[9]`              | 現状は未設定（デフォルト値）               |
 | `linear_acceleration_covariance` | `float64[9]`              | 現状は未設定（デフォルト値）               |
