@@ -133,7 +133,7 @@ DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(paren
 	ROS_INFO("    - '%s-handed' coordinate system", flip_z_axis_ ? "right" : "left");
 	
 	// ROS topicの設定
-	pub_imu_ = parent_.create_publisher<Imu>("dynamixel/imu/raw", 4);
+	pub_imu_ = parent_.create_publisher<Imu>("dynamixel/opencr_imu/read", 4);
 	rclcpp::SubscriptionOptions sub_options;
 	sub_options.callback_group = parent_.cbg_serial_;
 	sub_calib_ = parent_.create_generic_subscription(

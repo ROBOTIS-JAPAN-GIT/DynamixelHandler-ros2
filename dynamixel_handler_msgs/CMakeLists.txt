@@ -10,6 +10,9 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rosidl_default_generators REQUIRED) # 自作msgの作成のために必要
 find_package(std_msgs REQUIRED) # 自作msgのHeaderのために必要
+find_package(builtin_interfaces REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 # 以下の部分は自作msgの定義のために必要
 set(msg_files
@@ -53,6 +56,7 @@ set(msg_files
   "msg/DynamixelControlProExtendedPosition.msg"
 
   "msg/DxlExternalPort.msg"
+  "msg/DxmioImu.msg"
 )
 set(srv_files
 
@@ -60,7 +64,7 @@ set(srv_files
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${msg_files}
   ${srv_files}
-  DEPENDENCIES std_msgs
+  DEPENDENCIES std_msgs builtin_interfaces sensor_msgs geometry_msgs
 )
 ament_export_dependencies(rosidl_default_runtime)
 

@@ -54,10 +54,12 @@
             verbose/write:    false
             verbose/read:     {raw: false, err: false}
         option/imu_dxmio:
-            use: true
-            pub_ratio:    2
+            use: false
+            pub_ratio/data:    2 # 加速度・角速度・Quatを読み取る割合
+            pub_ratio/extra: 291 # 重力ノルム・温度を更新する割合
             dxmio_id:   200
             model_number: 16420 # 0x4024, E097B_SMPL1.2 dxmio3_dxl
+            terminator: true # RS-485終端抵抗, 変更時に不揮発保存, 状態は初期化時に確認
             frame_id: base_link
             adjust/rpy_deg: [0.0, 0.0, 0.0]
             adjust/flip_z_axis: false

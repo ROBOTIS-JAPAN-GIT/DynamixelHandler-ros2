@@ -10,6 +10,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(dynamixel_handler_msgs REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 find_package(pybind11_vendor REQUIRED)
@@ -111,6 +112,7 @@ ament_target_dependencies(
   rclcpp
   std_msgs
   sensor_msgs
+  geometry_msgs
   dynamixel_handler_msgs
 )
 target_link_libraries(
