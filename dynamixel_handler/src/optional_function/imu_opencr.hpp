@@ -62,9 +62,9 @@ class DynamixelHandler::ImuOpenCR {
 		bool verbose_read_     = false; // serial通信関係のverbose設定
 		bool verbose_read_err_ = false; // serial通信関係のverbose設定
 
-		static inline array<double, 3> angular_velocity_    = {0.0, 0.0, 0.0};
-		static inline array<double, 3> linear_acceleration_ = {0.0, 0.0, 0.0};
-		static inline array<double, 4> orientation_         = {0.0, 0.0, 0.0, 1.0};
+		static inline array<double, 3> gyro_ = {0.0, 0.0, 0.0};
+		static inline array<double, 3> acc_  = {0.0, 0.0, 0.0};
+		static inline array<double, 4> quat_ = {0.0, 0.0, 0.0, 1.0};
 
 		bool ReadImuData(uint8_t imu_id);
 		bool WriteCalibGyro(uint8_t imu_id);

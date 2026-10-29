@@ -952,3 +952,42 @@ string MODE_DIGITAL_IN_PULLUP   = "d_in_pu" # 指定ポートをデジタル入�
 string MODE_DIGITAL_IN_PULLDOWN = "d_in_pd" # 指定ポートをデジタル入力モード(プルダウン)に設定する．
 string MODE_UNSET               = "unset"   # 指定ポートのモードの設定を解除する．
 ```
+
+---
+
+## DXMIO IMU に関して
+
+### Topic list
+
+   - `/dynamixel/dxmio_imu/read` : 検出したDXMIOの測定値・設定値を読み取る．
+   - `/dynamixel/dxmio_imu/write` : DXMIOごとに座標系名・座標補正・終端抵抗を設定する．
+
+### How to use
+
+有効化・読取周期・コマンドラインでの使用例は[DXMIO IMUの説明](../ReadMe.md#dxmio-imu)を参照．
+各配列は `id_list` と同じ順で対応し，`data[i]` は `id_list[i]` のIMUデータを表す．
+設定変更は，対象のDXMIOのIDを `id_list` に，設定値を同じ順に並べて `/dynamixel/dxmio_imu/write` へ送信する．設定できる項目は `frame_id`，`flip_z_axis`，`adjust_rpy_deg`，`terminator` である．
+
+### Topic type detail
+
+#### `dynamixel_handler_msgs::msg::DxmioImu` type
+
+`/dynamixel/dxmio_imu/read` と `/dynamixel/dxmio_imu/write` に共通の型．
+
+```yaml
+builtin_interfaces/Time stamp
+uint16[] id_list
+
+sensor_msgs/Imu[] data
+geometry_msgs/Vector3[] gravity
+float64[] temperature_degc
+
+string[] frame_id
+bool[] flip_z_axis
+geometry_msgs/Vector3[] adjust_rpy_deg # x=roll, y=pitch, z=yaw [deg]
+
+bool[] terminator
+```
+
+readの `stamp` は配信時刻，`data[i].header.stamp` は各DXMIOの姿勢・角速度・加速度を最後に取得した時刻を表す．
+`data` と `gravity` は取付向きの設定に従い，`frame_id` で指定した出力座標系の値になる．`temperature_degc` はIMU内部の[ジャイロセンサ温度](https://www.ceva-ip.com/wp-content/uploads/SH-2-Reference-Manual.pdf#page=68) [degC]を表す．
