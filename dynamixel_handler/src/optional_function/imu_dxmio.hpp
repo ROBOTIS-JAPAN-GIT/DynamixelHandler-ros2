@@ -17,10 +17,6 @@ using std::string;
 using std::vector;
 #include <array>
 using std::array;
-#include <unordered_map>
-using std::unordered_map;
-#include <set>
-using std::set;
 
 class DynamixelHandler::ImuDXMIO {
 	public:
@@ -39,20 +35,22 @@ class DynamixelHandler::ImuDXMIO {
 		array<double, 4> quat_adjust_ = {0.0, 0.0, 0.0, 1.0};
 		bool flip_z_axis_ = false;
 
-		unordered_map<string, unsigned int> pub_ratio_;
+		unsigned int pub_ratio_data_ = 0;
+		unsigned int pub_ratio_extra_ = 0;
 		bool verbose_read_     = false;
 		bool verbose_read_err_ = false;
 
-		static inline array<double, 3> angular_velocity_    = {0.0, 0.0, 0.0};
-		static inline array<double, 3> linear_acceleration_ = {0.0, 0.0, 0.0};
-		static inline array<double, 4> orientation_         = {0.0, 0.0, 0.0, 1.0};
-		static inline array<double, 3> gravity_direction_   = {0.0, 0.0, 0.0};
+		static inline array<double, 3> gyro_        = {0.0, 0.0, 0.0};
+		static inline array<double, 3> acc_         = {0.0, 0.0, 0.0};
+		static inline array<double, 4> quat_        = {0.0, 0.0, 0.0, 1.0};
+		static inline array<double, 3> gravity_dir_ = {0.0, 0.0, 0.0};
 		static inline double gravity_norm_ = 0.0;
 		static inline double temperature_degc_ = 0.0;
 		static inline bool terminator_ = false;
 		static inline builtin_interfaces::msg::Time stamp_imu_{};
 
-		bool ReadImuData(uint8_t imu_id, const set<string>& items_read);
+		bool ReadImuData(uint8_t imu_id);
+		bool ReadImuExtra(uint8_t imu_id);
 };
 
 #endif /* DYNAMIXEL_IMU_DXMIO_H */

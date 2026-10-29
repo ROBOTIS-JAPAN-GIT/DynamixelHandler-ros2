@@ -59,8 +59,8 @@ static array<double, 4> multiply_quat(const array<double, 4>& q1, const array<do
 static array<double, 3> rotate_vector_by_quat(const array<double, 3>& v, const array<double, 4>& q) {
 	const array<double, 4> q_vec = {v[0], v[1], v[2], 0.0};
 	const array<double, 4> q_conj = {-q[0], -q[1], -q[2], q[3]};
-	const array<double, 4> q_rotated = multiply_quat(multiply_quat(q, q_vec), q_conj);
-	return {q_rotated[0], q_rotated[1], q_rotated[2]};
+	const array<double, 4> q_rot = multiply_quat(multiply_quat(q, q_vec), q_conj);
+	return {q_rot[0], q_rot[1], q_rot[2]};
 }
 
 static array<double, 4> convert_rpy_to_quat(double roll_deg, double pitch_deg, double yaw_deg) {
@@ -116,15 +116,15 @@ DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(paren
 		ROS_WARN( " < ... IMU on OpenCR is failed to initialize > ");
 		return;
 	}
-	auto opencr_num = dyn_comm_.tryRead(AddrCommon::model_number, id_imu_);
+	auto model_read = dyn_comm_.tryRead(AddrCommon::model_number, id_imu_);
 	if ( dyn_comm_.timeout_last_read() || dyn_comm_.comm_error_last_read() ) {
 		ROS_WARN("  * IMU ID [%d] failed to read model_number", id_imu_);
 		ROS_WARN( " < ... IMU on OpenCR is failed to initialize > ");
 		return;
 	}
-	if ( opencr_num != model_number ) { // OpenCRのIMUが期待したmodel_numberか確認
+	if ( model_read != model_number ) { // OpenCRのIMUが期待したmodel_numberか確認
 		ROS_WARN("  * IMU ID [%d] is mismatched in model_number (read [%d], expected [%d])",
-				 id_imu_, (int)opencr_num, (int)model_number);
+				 id_imu_, (int)model_read, (int)model_number);
 		ROS_WARN( " < ... IMU on OpenCR is failed to initialize > ");
 		return;
 	}
@@ -203,27 +203,28 @@ bool DynamixelHandler::ImuOpenCR::ReadImuData(uint8_t imu_id) {
 	}
 
 	//* 読み取ったデータを反映
-	const double _sign = flip_z_axis_ ? -1.0 : 1.0;
-	const array<double, 3> angular_velocity_handedness = {
-		(double)result[0] * res_gyro * _sign,
-		(double)result[1] * res_gyro * _sign,
+	// Convert axis convention before applying the mounting rotation.
+	const double sign = flip_z_axis_ ? -1.0 : 1.0;
+	const array<double, 3> gyro = {
+		(double)result[0] * res_gyro * sign,
+		(double)result[1] * res_gyro * sign,
 		(double)result[2] * res_gyro
 	};
-	const array<double, 3> linear_acceleration_handedness = {
+	const array<double, 3> acc = {
 		(double)result[3] * res_acc,
 		(double)result[4] * res_acc,
-		(double)result[5] * res_acc * _sign
+		(double)result[5] * res_acc * sign
 	};
-	angular_velocity_ = rotate_vector_by_quat(angular_velocity_handedness, quat_adjust_);
-	linear_acceleration_ = rotate_vector_by_quat(linear_acceleration_handedness, quat_adjust_);
+	gyro_ = rotate_vector_by_quat(gyro, quat_adjust_);
+	acc_ = rotate_vector_by_quat(acc, quat_adjust_);
 
 	// OpenCR quaternion is read in [w, x, y, z] order and converted to ROS [x, y, z, w].
-	const double q0_w = int32_bits_to_float(static_cast<int32_t>(result[6]));
-	const double q1_x = int32_bits_to_float(static_cast<int32_t>(result[7])) * _sign;
-	const double q2_y = int32_bits_to_float(static_cast<int32_t>(result[8])) * _sign;
-	const double q3_z = int32_bits_to_float(static_cast<int32_t>(result[9]));
-	const array<double, 4> orientation_handedness = normalize_quat({q1_x, q2_y, q3_z, q0_w});
-	orientation_ = normalize_quat(multiply_quat(orientation_handedness, quat_adjust_));
+	const double quat_w = int32_bits_to_float(static_cast<int32_t>(result[6]));
+	const double quat_x = int32_bits_to_float(static_cast<int32_t>(result[7])) * sign;
+	const double quat_y = int32_bits_to_float(static_cast<int32_t>(result[8])) * sign;
+	const double quat_z = int32_bits_to_float(static_cast<int32_t>(result[9]));
+	const array<double, 4> quat = normalize_quat({quat_x, quat_y, quat_z, quat_w});
+	quat_ = normalize_quat(multiply_quat(quat, quat_adjust_));
 
 	return true;
 }
@@ -232,16 +233,16 @@ void DynamixelHandler::ImuOpenCR::BroadcastImuData() {
 	Imu msg_imu;
 	msg_imu.header.frame_id = frame_id_;
 	msg_imu.header.stamp = parent_.get_clock()->now();
-	msg_imu.angular_velocity.x = angular_velocity_[0];
-	msg_imu.angular_velocity.y = angular_velocity_[1];
-	msg_imu.angular_velocity.z = angular_velocity_[2];
-	msg_imu.linear_acceleration.x = linear_acceleration_[0];
-	msg_imu.linear_acceleration.y = linear_acceleration_[1];
-	msg_imu.linear_acceleration.z = linear_acceleration_[2];
-	msg_imu.orientation.x = orientation_[0];
-	msg_imu.orientation.y = orientation_[1];
-	msg_imu.orientation.z = orientation_[2];
-	msg_imu.orientation.w = orientation_[3];
+	msg_imu.angular_velocity.x = gyro_[0];
+	msg_imu.angular_velocity.y = gyro_[1];
+	msg_imu.angular_velocity.z = gyro_[2];
+	msg_imu.linear_acceleration.x = acc_[0];
+	msg_imu.linear_acceleration.y = acc_[1];
+	msg_imu.linear_acceleration.z = acc_[2];
+	msg_imu.orientation.x = quat_[0];
+	msg_imu.orientation.y = quat_[1];
+	msg_imu.orientation.z = quat_[2];
+	msg_imu.orientation.w = quat_[3];
 	if ( pub_imu_ && rclcpp::ok() ) pub_imu_->publish(msg_imu);
 }
 
