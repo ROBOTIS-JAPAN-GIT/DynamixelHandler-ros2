@@ -61,11 +61,21 @@ set(msg_files
 set(srv_files
 
 )
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.16)
+  set(CMAKE_UNITY_BUILD ON)
+  set(CMAKE_UNITY_BUILD_BATCH_SIZE 8)
+endif()
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${msg_files}
   ${srv_files}
   DEPENDENCIES std_msgs builtin_interfaces sensor_msgs geometry_msgs
 )
+# Avoid specialization conflicts and redundant declarations in generated C++ type support.
+foreach(typesupport introspection_cpp fastrtps_cpp)
+  if(TARGET ${PROJECT_NAME}__rosidl_typesupport_${typesupport})
+    set_target_properties(${PROJECT_NAME}__rosidl_typesupport_${typesupport} PROPERTIES UNITY_BUILD OFF)
+  endif()
+endforeach()
 ament_export_dependencies(rosidl_default_runtime)
 
 if(BUILD_TESTING)

@@ -2,6 +2,8 @@
 
 #include "myUtils/formatting_output.hpp"
 #include "myUtils/make_iterator_convenient.hpp"
+#include "rclcpp/serialization.hpp"
+#include "rclcpp/serialized_message.hpp"
 #include <cmath>
 
 using namespace std::string_literals;
@@ -129,7 +131,16 @@ DynamixelHandler::ImuDXMIO::ImuDXMIO(DynamixelHandler& parent) : parent_(parent)
 	pub_imu_ = parent_.create_publisher<DxmioImu>("dynamixel/dxmio_imu/read", 4);
 	rclcpp::SubscriptionOptions sub_options;
 	sub_options.callback_group = parent_.cbg_command_;
-	sub_imu_ = parent_.create_subscription<DxmioImu>("dynamixel/dxmio_imu/write", 4, bind(&ImuDXMIO::CallbackImu, this, _1), sub_options);
+	sub_imu_ = parent_.create_generic_subscription(
+		"dynamixel/dxmio_imu/write", "dynamixel_handler_msgs/msg/DxmioImu", rclcpp::QoS(4),
+		[this](std::shared_ptr<rclcpp::SerializedMessage> serialized_msg) {
+			auto msg = std::make_shared<DxmioImu>();
+			rclcpp::Serialization<DxmioImu> serializer;
+			serializer.deserialize_message(serialized_msg.get(), msg.get());
+			CallbackImu(msg);
+		},
+		sub_options
+	);
 
 	is_dxmio_ready_ = true;
 	ROS_INFO( " < ............ IMU on DXMIO is initialized  > ");

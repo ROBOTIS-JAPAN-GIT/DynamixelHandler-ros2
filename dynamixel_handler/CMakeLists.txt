@@ -120,6 +120,21 @@ target_link_libraries(
   dynamixel_communicator
 )
 
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
+  set_target_properties(${PROJECT_NAME} PROPERTIES UNITY_BUILD ON UNITY_BUILD_MODE GROUP)
+  set_source_files_properties(
+    src/dynamixel_handler_ros_interface_sub.cpp
+    src/dynamixel_handler_ros_setup_for_cli.cpp
+    src/main.cpp
+    PROPERTIES UNITY_GROUP ros_input
+  )
+  set_source_files_properties(
+    src/dynamixel_handler_ros_interface_pub.cpp
+    src/dynamixel_handler.cpp
+    PROPERTIES UNITY_GROUP ros_output
+  )
+endif()
+
 install(
   TARGETS ${PROJECT_NAME}
   DESTINATION lib/${PROJECT_NAME}

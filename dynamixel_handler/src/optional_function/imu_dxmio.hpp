@@ -22,9 +22,6 @@ using std::unordered_map;
 #include <unordered_set>
 using std::unordered_set;
 
-using std::bind;
-using std::placeholders::_1;
-
 class DynamixelHandler::ImuDXMIO {
 	public:
 		ImuDXMIO(DynamixelHandler& parent);
@@ -36,7 +33,7 @@ class DynamixelHandler::ImuDXMIO {
 		void BroadcastImuData();
 		rclcpp::Publisher<DxmioImu>::SharedPtr pub_imu_;
 		void CallbackImu(const DxmioImu::SharedPtr msg);
-		rclcpp::Subscription<DxmioImu>::SharedPtr sub_imu_;
+		rclcpp::SubscriptionBase::SharedPtr sub_imu_;
 
 		using id_t = uint8_t;
 		using vec3d = array<double, 3>;
