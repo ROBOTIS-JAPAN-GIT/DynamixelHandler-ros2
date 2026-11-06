@@ -88,7 +88,7 @@ DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(paren
 	ROS_INFO( " < Initializing IMU on OpenCR .............. > ");
 	
 	int64_t model_number = 0;
-	vector<double> rpy_adjust_deg = {0.0, 0.0, 0.0};
+	vector<double> rpy_adjustment_deg = {0.0, 0.0, 0.0};
 	parent_.get_parameter_or("option/imu_opencr.opencr_id", id_imu_, uint8_t{40});
 	parent_.get_parameter_or("option/imu_opencr.model_number", model_number, int64_t(0));
 	parent_.get_parameter_or("option/imu_opencr.frame_id", frame_id_, "base_link"s);
@@ -97,11 +97,11 @@ DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(paren
 	parent_.get_parameter_or("option/imu_opencr.verbose/write"   , verbose_write_   , false);
 	parent_.get_parameter_or("option/imu_opencr.verbose/read.raw", verbose_read_    , false);
 	parent_.get_parameter_or("option/imu_opencr.verbose/read.err", verbose_read_err_, false);
-	parent_.get_parameter_or("option/imu_opencr.adjust/rpy_deg", rpy_adjust_deg, vector<double>{0.0, 0.0, 0.0});
+	parent_.get_parameter_or("option/imu_opencr.adjust/rpy_deg", rpy_adjustment_deg, vector<double>{0.0, 0.0, 0.0});
 	parent_.get_parameter_or("option/imu_opencr.adjust/flip_z_axis", flip_z_axis_, false);
-	if ( rpy_adjust_deg.size() != 3 ) rpy_adjust_deg = {0.0, 0.0, 0.0};
+	if ( rpy_adjustment_deg.size() != 3 ) rpy_adjustment_deg = {0.0, 0.0, 0.0};
 	
-	quat_adjust_ = convert_rpy_to_quat(rpy_adjust_deg[0], rpy_adjust_deg[1], rpy_adjust_deg[2]);
+	quat_adjustment_ = convert_rpy_to_quat(rpy_adjustment_deg[0], rpy_adjustment_deg[1], rpy_adjustment_deg[2]);
 	
 	static auto& dyn_comm_ = parent_.dyn_comm_;
 
@@ -129,7 +129,7 @@ DynamixelHandler::ImuOpenCR::ImuOpenCR(DynamixelHandler& parent) : parent_(paren
 		return;
 	}
 	ROS_INFO("  * IMU ID [%d] model_number [%d] is found", id_imu_, (int)model_number);
-	ROS_INFO("    - coord. offset [roll, pitch, yaw] = [%.1f, %.1f, %.1f] deg", rpy_adjust_deg[0], rpy_adjust_deg[1], rpy_adjust_deg[2]);
+	ROS_INFO("    - coord. offset [roll, pitch, yaw] = [%.1f, %.1f, %.1f] deg", rpy_adjustment_deg[0], rpy_adjustment_deg[1], rpy_adjustment_deg[2]);
 	ROS_INFO("    - '%s-handed' coordinate system", flip_z_axis_ ? "right" : "left");
 	
 	// ROS topicの設定
@@ -215,8 +215,8 @@ bool DynamixelHandler::ImuOpenCR::ReadImuData(uint8_t imu_id) {
 		(double)result[4] * res_acc,
 		(double)result[5] * res_acc * sign
 	};
-	gyro_ = rotate_vector_by_quat(gyro, quat_adjust_);
-	acc_ = rotate_vector_by_quat(acc, quat_adjust_);
+	gyro_ = rotate_vector_by_quat(gyro, quat_adjustment_);
+	acc_ = rotate_vector_by_quat(acc, quat_adjustment_);
 
 	// OpenCR quaternion is read in [w, x, y, z] order and converted to ROS [x, y, z, w].
 	const double quat_w = int32_bits_to_float(static_cast<int32_t>(result[6]));
@@ -224,7 +224,7 @@ bool DynamixelHandler::ImuOpenCR::ReadImuData(uint8_t imu_id) {
 	const double quat_y = int32_bits_to_float(static_cast<int32_t>(result[8])) * sign;
 	const double quat_z = int32_bits_to_float(static_cast<int32_t>(result[9]));
 	const array<double, 4> quat = normalize_quat({quat_x, quat_y, quat_z, quat_w});
-	quat_ = normalize_quat(multiply_quat(quat, quat_adjust_));
+	quat_ = normalize_quat(multiply_quat(quat, quat_adjustment_));
 
 	return true;
 }

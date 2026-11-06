@@ -53,7 +53,7 @@ class DynamixelHandler::ImuOpenCR {
 		uint8_t id_imu_ = 40; // OpenCRのIMUのID, デフォルトは40
 		string frame_id_ = "base_link";
 		bool is_opencr_ready_ = false;
-		array<double, 4> quat_adjust_ = {0.0, 0.0, 0.0, 1.0}; // OpenCR->robot 座標補正 [x,y,z,w]
+		array<double, 4> quat_adjustment_ = {0.0, 0.0, 0.0, 1.0}; // OpenCR->robot 座標補正 [x,y,z,w]
 		bool flip_z_axis_ = false; // OpenCR->robot の handedness 補正で z 軸反転する
 
 		unsigned int pub_ratio_ = 0; // 何回に1回publishするか

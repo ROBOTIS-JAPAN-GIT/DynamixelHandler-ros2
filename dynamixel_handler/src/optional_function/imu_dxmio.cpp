@@ -88,9 +88,11 @@ DynamixelHandler::ImuDXMIO::ImuDXMIO(DynamixelHandler& parent) : parent_(parent)
 	ROS_INFO( " < Initializing IMU on DXMIO ............... > ");
 
 	int64_t model_number = 0;
+	double latency_margin;
 	parent_.get_parameter_or("option/imu_dxmio.pub_ratio/motion", pub_ratio_motion_, 10u);
 	parent_.get_parameter_or("option/imu_dxmio.pub_ratio/extra", pub_ratio_extra_, 100u);
 	parent_.get_parameter_or("option/imu_dxmio.model_number", model_number, int64_t(0x4024));
+	parent_.get_parameter_or("option/imu_dxmio.additional_timeout", latency_margin, 1.0);
 	parent_.get_parameter_or("option/imu_dxmio.verbose/callback", verbose_callback_, false);
 	parent_.get_parameter_or("option/imu_dxmio.verbose/write"   , verbose_write_   , false);
 	parent_.get_parameter_or("option/imu_dxmio.verbose/read.raw", verbose_read_    , false);
@@ -124,8 +126,18 @@ DynamixelHandler::ImuDXMIO::ImuDXMIO(DynamixelHandler& parent) : parent_(parent)
 		terminator_r_[id] = terminator_read != 0;
 	}
 	if ( id_imu_list_.empty() ) {
-		ROS_WARN( " < ... IMU on DXMIO is failed to initialize  > ");
+		ROS_WARN( " < .... IMU on DXMIO is failed to initialize > ");
 		return;
+	}
+	if ( id_imu_list_.size() > 1 && latency_margin > 0 ) {
+		int latency_timer = parent_.get_parameter_or("latency_timer", 16);
+		latency_timer = std::clamp(latency_timer + std::round((id_imu_list_.size() - 1) * latency_margin), 0.0, 255.0);
+		dyn_comm_.set_latency_timer(latency_timer);
+		if ( !dyn_comm_.OpenPort() ) { // OpenPort applies the stored latency timer to the shared port.
+					ROS_WARN("  * IMU failed to apply latency_timer");
+			return;
+		}
+		ROS_INFO("  * IMU [%zu] devices, latency_timer [%d]", id_imu_list_.size(), latency_timer);
 	}
 
 	pub_imu_ = parent_.create_publisher<DxmioImu>("dynamixel/dxmio_imu/read", 4);
@@ -175,7 +187,7 @@ void DynamixelHandler::ImuDXMIO::CallbackImu(const DxmioImu::SharedPtr msg) {
 		if ( has_flip ) flip_z_axis_[id] = msg->flip_z_axis[i];
 		if ( has_rpy ) {
 			const auto& rpy = msg->adjust_rpy_deg[i];
-			rpy_adjust_[id] = {rpy.x, rpy.y, rpy.z};
+			rpy_adjustment_[id] = {rpy.x, rpy.y, rpy.z};
 		}
 		if ( has_terminator ) {
 			terminator_w_[id] = msg->terminator[i];
@@ -258,8 +270,8 @@ bool DynamixelHandler::ImuDXMIO::ReadImuMotion(const vector<id_t>& id_list) {
 	StateLock lock(parent_.mutex_state_);
 	const auto stamp = parent_.get_clock()->now();
 	for ( const auto& [id, result] : id_data_map ) {
-		const auto& rpy = rpy_adjust_[id];
-		const auto quat_adjust = convert_rpy_to_quat(rpy[0], rpy[1], rpy[2]);
+		const auto& rpy = rpy_adjustment_[id];
+		const auto quat_adjustment = convert_rpy_to_quat(rpy[0], rpy[1], rpy[2]);
 		// Convert axis convention before applying the mounting rotation.
 		const double sign = flip_z_axis_[id] ? -1.0 : 1.0;
 		const vec3d gyro = {
@@ -272,17 +284,17 @@ bool DynamixelHandler::ImuDXMIO::ReadImuMotion(const vector<id_t>& id_list) {
 			int32_bits_to_float(static_cast<int32_t>(result[4])),
 			int32_bits_to_float(static_cast<int32_t>(result[5])) * sign
 		};
-		gyro_[id] = rotate_vector_by_quat(gyro, quat_adjust);
-		acc_[id] = rotate_vector_by_quat(acc, quat_adjust);
+		gyro_[id] = rotate_vector_by_quat(gyro, quat_adjustment);
+		acc_[id] = rotate_vector_by_quat(acc, quat_adjustment);
 		// DXMIO [w, x, y, z] to ROS [x, y, z, w].
 		const auto q = normalize_quat({int32_bits_to_float(static_cast<int32_t>(result[7])),
 			int32_bits_to_float(static_cast<int32_t>(result[8])),
 			int32_bits_to_float(static_cast<int32_t>(result[9])),
 			int32_bits_to_float(static_cast<int32_t>(result[6]))});
 		const auto quat = normalize_quat({q[0] * sign, q[1] * sign, q[2], q[3]});
-		quat_[id] = normalize_quat(multiply_quat(quat, quat_adjust));
+		quat_[id] = normalize_quat(multiply_quat(quat, quat_adjustment));
 		const auto gravity_dir = rotate_vector_by_quat({0.0, 0.0, 1.0}, {-q[0], -q[1], -q[2], q[3]});
-		gravity_dir_[id] = rotate_vector_by_quat({gravity_dir[0], gravity_dir[1], gravity_dir[2] * sign}, quat_adjust);
+		gravity_dir_[id] = rotate_vector_by_quat({gravity_dir[0], gravity_dir[1], gravity_dir[2] * sign}, quat_adjustment);
 		stamp_imu_[id] = stamp;
 	}
 	return !id_data_map.empty();
@@ -326,7 +338,7 @@ void DynamixelHandler::ImuDXMIO::BroadcastImuData() {
 	{
 		StateLock lock(parent_.mutex_state_);
 		for ( auto id : id_imu_list_ ) {
-			const auto& rpy = rpy_adjust_[id];
+			const auto& rpy = rpy_adjustment_[id];
 			msg.id_list.push_back(id);
 			Imu msg_imu;
 			msg_imu.header.frame_id = frame_id_[id];

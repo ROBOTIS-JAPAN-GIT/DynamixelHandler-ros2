@@ -41,7 +41,7 @@ class DynamixelHandler::ImuDXMIO {
 		bool is_dxmio_ready_ = false;
 		unordered_map<id_t, string> frame_id_;
 		unordered_map<id_t, bool> flip_z_axis_;
-		unordered_map<id_t, vec3d> rpy_adjust_; // [roll, pitch, yaw] [deg]
+		unordered_map<id_t, vec3d> rpy_adjustment_; // [roll, pitch, yaw] [deg]
 		unordered_map<id_t, bool> terminator_w_;
 		unordered_set<id_t> updated_id_terminator_;
 

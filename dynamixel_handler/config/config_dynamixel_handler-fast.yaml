@@ -59,6 +59,7 @@
             pub_ratio/motion:   2 # 加速度・角速度・Quatを読み取る割合
             pub_ratio/extra: 7331 # 重力ノルム・温度を更新する割合
             model_number: 16420 # 0x4024, E097B_SMPL1.2 dxmio3_dxl
+            additional_timeout: 1.0 # 2台目以降の1台あたりの加算量 [ms], 台数分の合計を四捨五入してlatency_timerへ加算, 0.0なら無効
             verbose/callback: false
             verbose/write:    false
             verbose/read:     {raw: false, err: false}
