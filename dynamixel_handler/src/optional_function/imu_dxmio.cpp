@@ -4,7 +4,10 @@
 #include "myUtils/make_iterator_convenient.hpp"
 #include "rclcpp/serialization.hpp"
 #include "rclcpp/serialized_message.hpp"
+#include <algorithm>
+using std::all_of;
 #include <cmath>
+using std::isfinite;
 
 using namespace std::string_literals;
 
@@ -168,28 +171,28 @@ void DynamixelHandler::ImuDXMIO::CallbackImu(const DxmioImu::SharedPtr msg) {
 	for ( auto id : msg->id_list ) if ( is_in(id, id_imu_list_) ) valid_id_list.push_back(id);
 	if ( valid_id_list.empty() ) return;
 
-	const bool has_frame = msg->frame_id.size() == msg->id_list.size();
-	const bool has_flip  = msg->flip_z_axis.size() == msg->id_list.size();
+	const bool has_frame = msg->frame_id.size()       == msg->id_list.size();
+	const bool has_flip  = msg->flip_z_axis.size()    == msg->id_list.size();
 	const bool has_rpy   = msg->adjust_rpy_deg.size() == msg->id_list.size();
-	const bool has_terminator = msg->terminator.size() == msg->id_list.size();
+	const bool has_term  = msg->terminator.size()     == msg->id_list.size();
+	const bool valid_rpy = has_rpy && all_of(msg->adjust_rpy_deg.begin(), msg->adjust_rpy_deg.end(),
+		[](const auto& v){ return isfinite(v.x) && isfinite(v.y) && isfinite(v.z); });
 	if ( verbose_callback_ ) {
 		ROS_INFO("DXMIO IMU, '%zu' ID(s) are tryed to updated", valid_id_list.size());
 		ROS_INFO_STREAM(id_list_layout(valid_id_list, "  ID"));
-		if ( has_frame ) ROS_INFO("  - updated: frame_id"       ); else if ( !msg->frame_id.empty() ) ROS_WARN("  - skipped: frame_id (size mismatch)");
-		if ( has_flip  ) ROS_INFO("  - updated: flip_z_axis"    ); else if ( !msg->flip_z_axis.empty() ) ROS_WARN("  - skipped: flip_z_axis (size mismatch)");
-		if ( has_rpy   ) ROS_INFO("  - updated: adjust_rpy_deg" ); else if ( !msg->adjust_rpy_deg.empty() ) ROS_WARN("  - skipped: adjust_rpy_deg (size mismatch)");
-		if ( has_terminator ) ROS_INFO("  - updated: terminator"); else if ( !msg->terminator.empty() ) ROS_WARN("  - skipped: terminator (size mismatch)");
+		if ( has_frame ) ROS_INFO("  - updated: frame_id"       ); else if ( !msg->frame_id.empty()       ) ROS_WARN("  - skipped: frame_id (size mismatch)");
+		if ( has_flip  ) ROS_INFO("  - updated: flip_z_axis"    ); else if ( !msg->flip_z_axis.empty()    ) ROS_WARN("  - skipped: flip_z_axis (size mismatch)");
+		if ( valid_rpy ) ROS_INFO("  - updated: adjust_rpy_deg" ); else if ( !msg->adjust_rpy_deg.empty() ) ROS_WARN("  - skipped: adjust_rpy_deg %s", has_rpy?"(nan/inf value input)":"(size mismatch)");
+		if ( has_term  ) ROS_INFO("  - updated: terminator"     ); else if ( !msg->terminator.empty()     ) ROS_WARN("  - skipped: terminator (size mismatch)");
 	}
-	for ( size_t i = 0; i < msg->id_list.size(); i++ ) {
-		auto id = msg->id_list[i];
-		if ( !is_in(id, id_imu_list_) ) continue;
+	for (size_t i=0; i<msg->id_list.size(); i++) if ( auto id = msg->id_list[i]; is_in(id, valid_id_list) ) {
 		if ( has_frame ) frame_id_[id] = msg->frame_id[i];
-		if ( has_flip ) flip_z_axis_[id] = msg->flip_z_axis[i];
-		if ( has_rpy ) {
+		if ( has_flip  ) flip_z_axis_[id] = msg->flip_z_axis[i];
+		if ( valid_rpy ) {
 			const auto& rpy = msg->adjust_rpy_deg[i];
 			rpy_adjustment_[id] = {rpy.x, rpy.y, rpy.z};
 		}
-		if ( has_terminator ) {
+		if ( has_term  ) {
 			terminator_w_[id] = msg->terminator[i];
 			updated_id_terminator_.insert(id);
 		}
