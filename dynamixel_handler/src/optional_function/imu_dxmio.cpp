@@ -204,16 +204,16 @@ void DynamixelHandler::ImuDXMIO::MainProcess() {
 	if (!is_dxmio_ready_) return;
 	static int cnt = -1; cnt++;
 
-	bool updated = false;
+	double success_rate = 0;
 	{	StateLock lock(parent_.mutex_state_);
-		updated |= SyncWriteTerminator(updated_id_terminator_);
+		SyncWriteTerminator(updated_id_terminator_);
 		updated_id_terminator_.clear();
 	}
 	if ( pub_ratio_motion_ && cnt % pub_ratio_motion_ == 0 )
-		updated |= ReadImuMotion(id_imu_list_);
+		success_rate += ReadImuMotion(id_imu_list_);
 	if ( pub_ratio_extra_ && cnt % pub_ratio_extra_ == 0 )
-		updated |= ReadImuExtra(id_imu_list_);
-	if ( updated )
+		success_rate += ReadImuExtra(id_imu_list_);
+	if ( success_rate > 0.0 )
 		BroadcastImuData();
 }
 
