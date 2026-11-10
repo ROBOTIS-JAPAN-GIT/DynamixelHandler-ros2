@@ -25,3 +25,4 @@ DynamixelExtraShutdown shutdown
 DynamixelExtraLed led                    
 float64[] bus_watchdog_ms          
 bool[] reboot             
+uint16[] change_id

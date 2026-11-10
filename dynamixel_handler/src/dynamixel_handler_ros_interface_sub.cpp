@@ -103,6 +103,9 @@ void DynamixelHandler::CallbackShortcut(const DynamixelShortcut& msg) {
     else if (cmd==msg.TORQUE_OFF  || cmd=="TOFF") CallbackCmd_Status(st.set__id_list(id_list).set__torque(falses(id_list.size())));
     else if (cmd==msg.ADD_ID      || cmd=="ADID") CallbackCmd_Status(st.set__id_list(id_list).set__ping  ( trues(id_list.size())));
     else if (cmd==msg.REMOVE_ID   || cmd=="RMID") CallbackCmd_Status(st.set__id_list(id_list).set__ping  (falses(id_list.size())));
+    else if (cmd==msg.CHANGE_ID    ) { if (N==2) { auto pre = id_list.front(), next = id_list.back();
+        if ( pre<=252 && next<=252 ) {id_edit_[pre] = next;   ROS_INFO("  - set: change ID [%d] to [%d]", pre, next);}
+    }}
     else if (cmd==msg.RESET_OFFSET ) for(auto id: id_list) { ROS_INFO("  - set: offset zero, ID [%d]"   , id);
         updated_id_ex_rom_.insert(id); extra_db_w_[id][EXTRA_HOMING_OFFSET ]=0.0       ;ex_rom_indice_write_.insert(EXTRA_HOMING_OFFSET);
     }
@@ -797,14 +800,18 @@ void DynamixelHandler::CallbackCmd_Extra_Func(const DynamixelExtra& msg, const v
     const size_t n_reboot = msg.reboot.size();
     const bool valid_reboot   = n_reboot == N;
 
+    const size_t n_chg_id = msg.change_id.size();
+    const bool valid_chg_id   = n_chg_id == N;
+
     if ( verbose_callback_ ) {
         if ( n_led_r >0 ) { if ( valid_led_r ) ROS_INFO("  - updated: led.red_percent  "); else ROS_WARN("  - skipped: led.red_percent        %s",n_led_r !=N?warn_s:warn_n); }
         if ( n_led_g >0 ) { if ( valid_led_g ) ROS_INFO("  - updated: led.green_percent"); else ROS_WARN("  - skipped: led.green_percent      %s",n_led_g !=N?warn_s:warn_n); }
         if ( n_led_b >0 ) { if ( valid_led_b ) ROS_INFO("  - updated: led.blue_percent "); else ROS_WARN("  - skipped: led.blue_percent       %s",n_led_b !=N?warn_s:warn_n); }
         if ( n_watch >0 ) { if ( valid_watch ) ROS_INFO("  - updated: bus_watchdog_ms  "); else ROS_WARN("  - skipped: bus_watchdog_ms        %s",n_watch !=N?warn_s:warn_n); }
         if ( n_reboot>0 ) { if ( valid_reboot) ROS_INFO("  - execute: reboot           "); else ROS_WARN("  - skipped: reboot                 %s", warn_s); }
+        if ( n_chg_id>0 ) { if ( valid_chg_id) ROS_INFO("  - execute: change_id        "); else ROS_WARN("  - skipped: change_id              %s", warn_s); }
     }
-    if ( !valid_led && !valid_watch && !valid_reboot ) return;
+    if ( !valid_led && !valid_watch && !valid_reboot && !valid_chg_id ) return;
 
     StateLock lock(mutex_state_);
     for (size_t i=0; i<msg.id_list.size(); i++) if ( auto ID = msg.id_list[i]; is_in(ID, valid_id_list) ) {
@@ -826,5 +833,6 @@ void DynamixelHandler::CallbackCmd_Extra_Func(const DynamixelExtra& msg, const v
             extra_u8_w_[ID][EXTRA_REBOOT] = (int)true;
             updated_id_ex_ram_.insert(ID); ex_ram_indice_write_.insert(EXTRA_REBOOT);
         }
+        if ( valid_chg_id && msg.change_id[i]<=252 ) id_edit_[ID] = msg.change_id[i];
     }
 }

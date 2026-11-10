@@ -59,6 +59,7 @@ class DynamixelHandler::ImuDXMIO {
 		static inline unordered_map<id_t, bool> terminator_r_;
 		static inline unordered_map<id_t, builtin_interfaces::msg::Time> stamp_imu_;
 
+		bool ChangeDXMIO(id_t id_pre, id_t id_next);
 		bool ReadImuMotion(const vector<id_t>& id_list);
 		bool ReadImuExtra(const vector<id_t>& id_list);
 		bool SyncWriteTerminator(const unordered_set<id_t>& id_set);

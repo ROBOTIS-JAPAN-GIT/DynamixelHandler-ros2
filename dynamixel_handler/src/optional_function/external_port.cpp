@@ -372,6 +372,7 @@ DynamixelHandler::ExternalPort::~ExternalPort(){ // デストラクタ,  終了�
 void DynamixelHandler::ExternalPort::Initialize(const set<id_t>& cached_ids){
     static auto& id_set_ = parent_.id_set_;
     static auto& model_ = parent_.model_;
+    for (auto id : cached_ids) if ( !is_in(id, id_set_) ) touched_port_export_.erase(id);
     unordered_set<id_t> added_ids;
     for (auto id : id_set_) if ( !is_in(id, cached_ids) && has_external_port(model_[id]) ) added_ids.insert(id);
     static const auto is_ok = [this]() { if(!rclcpp::ok()) ROS_STOP("Failed to initial read"); rsleep(50); };

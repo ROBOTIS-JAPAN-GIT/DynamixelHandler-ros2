@@ -144,12 +144,15 @@ bool DynamixelHandler::RemoveDynamixel(id_t id){
 
 bool DynamixelHandler::ChangeDynamixel(id_t id_pre, id_t id_next){
     if ( id_pre == id_next ) return true;
-    if ( !is_in(id_pre, id_set_) || is_in(id_next, id_set_) ) return false;
+    if ( !is_in(id_pre, id_set_) ) return false;
+    if ( is_in(id_next, id_set_) || dyn_comm_.tryPing(id_next) ) {
+        ROS_WARN("   ID [%d] skip ID change to [%d] (already in use)", id_pre, id_next);
+        return false;
+    }
 
     const bool prev_torque = ReadTorqueEnable(id_pre);
     WriteTorqueEnable(id_pre, false);
     if ( dyn_comm_.tryWrite(AddrCommon::id, id_pre, id_next) ) {
-        WriteTorqueEnable(id_next, prev_torque);
         auto move_id_map = [id_pre, id_next](auto& m){ if ( m.count(id_pre) ) { m[id_next] = m[id_pre]; m.erase(id_pre); } };
         id_set_.erase(id_pre); id_set_.insert(id_next);
         move_id_map(model_    ); move_id_map(tq_mode_w_); move_id_map(goal_w_);move_id_map(extra_db_r_);     
@@ -158,6 +161,7 @@ bool DynamixelHandler::ChangeDynamixel(id_t id_pre, id_t id_next){
         move_id_map(bus_watch_); move_id_map(op_mode_r_); move_id_map(gain_r_);move_id_map(extra_u8_w_);
         move_id_map(hw_err_w_);  move_id_map(limit_w_); move_id_map(present_r_);
         move_id_map(hw_err_r_);  move_id_map(limit_r_);
+        WriteTorqueEnable(id_next, prev_torque);
     } else WriteTorqueEnable(id_pre, prev_torque);
      
     if ( dyn_comm_.tryPing(id_next) ) {ROS_INFO ("   ID [%d] is changed to [%d]", id_pre, id_next); return true; }

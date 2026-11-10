@@ -181,8 +181,8 @@ void DynamixelHandler::MainLoop(){
         std::lock_guard<std::recursive_mutex> lock(mutex_state_);
         if ( auto_remove_count_ ) for (auto [id, cnt_err]: ping_err_) 
             cnt_err>auto_remove_count_ && (id_edit_[id] = 0xFF);
-        if ( !id_edit_.empty() )  for (auto [id, id_sub]: exchange(id_edit_, {}) )
-            id_sub==0xFF ? (is_in(id, id_set_) ? RemoveDynamixel(id) : AddDynamixel(id)) : ChangeDynamixel(id, id_sub);
+        if ( const auto id_edit = exchange(id_edit_, {}); !id_edit.empty() ) for (auto [id, id_sub]: id_edit )
+            id_sub==0xFF ? (is_in(id, id_set_) ? RemoveDynamixel(id) : AddDynamixel(id)) : (!id_edit.count(id_sub) && ChangeDynamixel(id, id_sub));
         for ( auto id : id_set_ ) { // mode変更の失敗時のみ，goal更新しないように修正
             if (op_mode_w_.count(id)){ ChangeOperatingMode(id, op_mode_w_[id]) ? op_mode_w_.erase(id) : updated_id_goal_.erase(id);} 
             if ( hw_err_w_.count(id)){ ClearHardwareError (id,  hw_err_w_[id]);   hw_err_w_.erase(id);} // hw_err_w_[id]=複数回転をoffsetで復元するか

@@ -13,6 +13,7 @@ using namespace std::string_literals;
 
 #define ROS_INFO(...)  RCLCPP_INFO(parent_.get_logger(), __VA_ARGS__)
 #define ROS_WARN(...)  RCLCPP_WARN(parent_.get_logger(), __VA_ARGS__)
+#define ROS_ERROR(...) RCLCPP_ERROR(parent_.get_logger(), __VA_ARGS__)
 #define ROS_INFO_STREAM(...)  RCLCPP_INFO_STREAM(parent_.get_logger(), __VA_ARGS__)
 
 using StateLock = std::lock_guard<std::recursive_mutex>;
@@ -206,6 +207,8 @@ void DynamixelHandler::ImuDXMIO::MainProcess() {
 
 	double success_rate = 0;
 	{	StateLock lock(parent_.mutex_state_);
+		for (auto [id, id_sub]: parent_.id_edit_) if ( id_sub!=0xFF )
+			!parent_.id_edit_.count(id_sub) && ChangeDXMIO(id, id_sub);
 		SyncWriteTerminator(updated_id_terminator_);
 		updated_id_terminator_.clear();
 	}
@@ -215,6 +218,29 @@ void DynamixelHandler::ImuDXMIO::MainProcess() {
 		success_rate += ReadImuExtra(id_imu_list_);
 	if ( success_rate > 0.0 )
 		BroadcastImuData();
+}
+
+bool DynamixelHandler::ImuDXMIO::ChangeDXMIO(id_t id_pre, id_t id_next) {
+	static auto& dyn_comm_ = parent_.dyn_comm_;
+	if ( !is_in(id_pre, id_imu_list_) ) return false;
+	if ( id_pre==id_next ) return true;
+	if ( is_in(id_next, parent_.id_set_) || is_in(id_next, id_imu_list_) || dyn_comm_.tryPing(id_next) ) {
+		ROS_WARN("DXMIO ID [%d] skip ID change to [%d] (already in use)", id_pre, id_next);
+		return false;
+	}
+	if ( !dyn_comm_.tryWrite(AddrCommon::id, id_pre, id_next) ) {
+		ROS_ERROR("DXMIO failed to change ID [%d] to [%d]", id_pre, id_next);
+		return false;
+	}
+	auto move_id_map = [id_pre, id_next](auto& m){ m[id_next] = m[id_pre]; m.erase(id_pre); };
+		std::replace(id_imu_list_.begin(), id_imu_list_.end(), id_pre, id_next);
+		move_id_map(frame_id_); move_id_map(flip_z_axis_); move_id_map(rpy_adjustment_);
+		move_id_map(terminator_w_); move_id_map(terminator_r_);
+	if ( updated_id_terminator_.erase(id_pre) ) updated_id_terminator_.insert(id_next);
+	if ( !dyn_comm_.tryWrite(addr_write_nvm, id_next, 1) ) return false;
+	while ( !dyn_comm_.tryPing(id_next) ) { if ( !rclcpp::ok() ) return false; }
+	ROS_INFO("DXMIO ID [%d] is changed to [%d]", id_pre, id_next);
+	return true;
 }
 
 bool DynamixelHandler::ImuDXMIO::SyncWriteTerminator(const unordered_set<id_t>& id_set) {
