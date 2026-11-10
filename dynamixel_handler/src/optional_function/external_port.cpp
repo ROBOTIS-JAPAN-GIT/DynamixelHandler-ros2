@@ -78,7 +78,7 @@ void DynamixelHandler::ExternalPort::CallbackExternalPort(const DxlExternalPort:
             else if ( msg->mode[i] == msg->MODE_DIGITAL_OUT         ) export_w_[ID][port].mode = EXTERNAL_PORT_MODE_DOUT;
             else if ( msg->mode[i] == msg->MODE_DIGITAL_IN_PULLUP   ) export_w_[ID][port].mode = EXTERNAL_PORT_MODE_DIN_PULLUP;
             else if ( msg->mode[i] == msg->MODE_DIGITAL_IN_PULLDOWN ) export_w_[ID][port].mode = EXTERNAL_PORT_MODE_DIN_PULLDOWN;
-            else {continue; ROS_WARN("  Invalid mode [%s]", msg->mode[i].c_str());} // verbose_callback_ に関わらず出力
+            else {ROS_WARN("  Invalid mode [%s]", msg->mode[i].c_str()); continue;} // verbose_callback_ に関わらず出力
             touched_port_export_[ID].insert(port);
             if ( mode_pre!=export_w_[ID][port].mode ) updated_id_export_.mode.insert(ID);
         }
