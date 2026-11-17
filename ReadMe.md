@@ -568,7 +568,7 @@ Operating mode list
 
 ##### `extra` field :
 `pub_ratio/extra.dynamic_items` と `pub_ratio/extra.static_items` の周期で read される．  
-`id_list` フィールドの長さとそれ以外の配列要素の長さは必ず一致する．
+`change_id` を除き，`id_list` フィールドの長さとそれ以外の配列要素の長さは必ず一致する．
 
 | Field                    | Sub field                  | Type        | Description             | Note                                            |
 | ------------------------ | -------------------------- | ----------- | ----------------------- | ----------------------------------------------- |
@@ -604,8 +604,9 @@ Operating mode list
 |                          | `green_percent`            | `float64[]` | 緑LED (%)                | P/Proシリーズ                                         |
 | `bus_watchdog_ms`        | -                          | `float64[]` | 通信断時停止タイムアウト（ms）        |                                                 |
 | `reboot`                 | -                          | `bool[]`    | reboot要求フラグ             | 状態topicでは通常 `false`                             |
+| `change_id`              | -                          | `uint16[]`  | ID変更要求（command用）        | 状態topicでは空配列 `[]`                               |
 
-ダミーサーボを除く非対応機種の `/dynamixel/state/extra` では，項目ごとに次の値が publish される．
+ダミーサーボを除く非対応機種の `/dynamixel/state/extra` では，`change_id` を除き，項目ごとに次の値が publish される．
 - `float64[]` 系の項目は `nan`
 - `uint16[]` / `uint8[]` 系の項目は `0`
 - `string[]` 系の項目は空文字 `""`
@@ -1070,6 +1071,10 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 |                          | `green_percent`            | `float64[]` | 緑LED (%)              | P/Proシリーズ                     |
 | `bus_watchdog_ms`        | -                          | `float64[]` | 通信断時停止タイムアウト（ms）      |                             |
 | `reboot`                 | -                          | `bool[]`    | `true` で reboot 命令を送信 |                             |
+| `change_id`              | -                          | `uint16[]`  | 変更後のサーボID             | 0〜252．`id_list` と同じ順で指定 |
+
+`change_id` の変更先が登録済み，機器からの応答がある，または同じ処理周期のID追加・削除・変更の対象である場合は，変更を行わない．
+ID変更中はトルクがOFFになり，変更後に元の状態へ戻る．
 
 </details>
 
@@ -1079,7 +1084,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
 | Field       | Type        | Description                                                                   |
 | ----------- | ----------- | ----------------------------------------------------------------------------- |
 | `command`   | `string`    | コマンドの文字列 (下記の Shortcut Command list 参照)                                       |
-| `id_list`   | `uint16[]`  | 適用するサーボのIDリスト． [] or [254] とすると認識されているすべてのIDを選択したのと同等となる．                     |
+| `id_list`   | `uint16[]`  | 適用するサーボのIDリスト． [] or [254] とすると認識されているすべてのIDを選択したのと同等となる（`change_id` を除く）． |
 
 <details>
 <summary> Shortcut Command list </summary>
@@ -1094,6 +1099,7 @@ Subscribe 時にデータが一時保存され，直後のメインループ内�
     回転数の情報が喪失する問題を解消するために，homing offset用いて自動で補正する．
   - `remove_id`/ `RMID`: 指定したIDのサーボを認識リストから削除する．
   - `add_id`/ `ADID`   : 指定したIDのサーボを認識リストに追加する．
+  - `change_id` : 認識済みのサーボのIDを変更する．`id_list: [変更前ID, 変更後ID]` の2要素を指定（各IDは0〜252）．
 
 - **低レベルコマンド**：開発者向け
   - `reset_offset`: homing offset アドレスに 0 を書き込む．
@@ -1373,13 +1379,26 @@ option/external_port:
 | `mode`    | `string[]`                | ポートのモード．文字列で指定 (詳細はDxlExternalPort型の定数を参照)         |
 | `data`    | `int16[]`                 | ポートのデータ．モードが digital out の場合のみ有効．(0: Low, 1: High) |
 
+ID変更後も外部ポートを読み取るには，`/dynamixel/external_port/write` に新しいIDと `port`，`mode` を指定し直す．
+
 ### DXMIO IMU
 
-DXMIO上のIMUから姿勢・角速度・加速度を読み取り，重力ベクトル・IMU内部温度とともに配信するoptional機能．
+[DXMIO上のIMU](https://www.besttechnology.co.jp/modules/d3blog/details.php?bid=262)から姿勢・角速度・加速度を読み取り，重力ベクトル・IMU内部温度とともに配信するoptional機能．
 複数台のDXMIOを1つのトピックで扱い，個体ごとの座標補正や終端抵抗はwriteトピックから設定する．
 
-DXMIOをサーボと同じ通信バスに接続し，IDが他の機器と重複しないように設定する．DXMIO の baudrate はノードの `baudrate` と一致させること．
 利用する場合は `option/imu_dxmio.use` を `true` に設定する．
+
+DXMIOをサーボと同じ通信バスで使うには，IDが他の機器と重複しないことと，baudrateがノードの `baudrate` と一致していることが必要である．
+標準ファームの初期設定はID200・baudrate 1 Mbpsなので（[メーカー資料](https://www.besttechnology.co.jp/modules/d3blog/details.php?bid=262)），初期設定のDXMIOを複数台使う場合は，1台ずつ接続してIDを変更してからまとめて接続する．
+
+IDを変更したい場合は，[`/dynamixel/shortcut`](#dynamixelshortcut-dynamixel_handler_msgsmsgdynamixelshortcut型) の `change_id` を使い，`id_list: [変更前ID, 変更後ID]` を指定する．例えば，`{command: 'change_id', id_list: [200, 202]}` を送るとID200を202へ変更できる．
+
+baudrateを変更したい場合は，`init/baudrate_auto_set: true` にしてノードを起動すると，DXMIOを含むすべての接続機器がノードの `baudrate` に統一される．DXMIO IMUだけを対象にbaudrateを変更する機能はないため注意．
+
+また，デイジーチェーンしたサーボの末端にDXMIOを接続する場合，DXMIO自身を終端抵抗として代替できる（[終端抵抗の説明](https://docs.robotis.com/docs/parts/interface/u2d2/#additional-features)）．
+topic によって終端抵抗の有効・無効を個体ごとに設定できるので，サーボの末端にDXMIOを接続する場合は，DXMIOの終端抵抗を有効にすることを推奨する．
+
+読み取り周期などは，次のように指定する．
 
 ```yaml
 option/imu_dxmio:
@@ -1387,15 +1406,17 @@ option/imu_dxmio:
     pub_ratio/motion: 2  # 姿勢・角速度・加速度を読む周期（loop回数基準）
     pub_ratio/extra: 100 # 重力の大きさ・IMU内部温度を読む周期（loop回数基準）
     model_number: 16420  # 自動検出するDXMIOのモデル番号（0x4024）
+    additional_timeout: 0.5 # 2台目以降の1台あたりのlatency_timer加算量 [ms]
     verbose/callback: false
     verbose/write: false
     verbose/read: {raw: false, err: false}
 ```
 
-起動時に接続機器を自動検出し，`model_number` が一致するDXMIOを登録する．DXMIOのID指定や，サーボのID探索範囲の拡張は不要．対象が見つからない場合はWARNを出し，DXMIO機能を無効にしてノードの動作を続ける．
-現状は異なる model number の DXMIO を併用することはできない．
+起動時には接続機器を自動検出し，`model_number` が一致するDXMIOを登録するため，DXMIOのID指定やサーボのID探索範囲の拡張は不要である．ただし，指定できるモデル番号は1つなので，異なるモデル番号のDXMIOは併用できない．また，対象が見つからない場合はWARNを出し，DXMIO機能を無効にしてノードの動作を続ける．
 
 `pub_ratio/motion` と `pub_ratio/extra` は，それぞれ何loopに1回読み取るかを指定する．例えば `loop_rate: 200` で上記の設定を使うと，motionは100 Hz，extraは2 Hzになる．`0` にすると該当グループの周期読取りを無効化する．
+
+`additional_timeout` は，複数台接続時にソフトウェア側の受信待ち時間を延長する設定である．`latency_timer` への加算値 [ms] は `additional_timeout × (DXMIOの台数 - 1)` を四捨五入して求める．
 
 #### `/dynamixel/dxmio_imu/read` ([`DxmioImu`型](./dynamixel_handler_msgs#dynamixel_handler_msgsmsgdxmioimu-type))
 
@@ -1444,9 +1465,10 @@ ros2 topic pub --once /dynamixel/dxmio_imu/write dynamixel_handler_msgs/msg/Dxmi
     adjust_rpy_deg: [{x: 0.0, y: 0.0, z: 0.0}, {x: 0.0, y: 0.0, z: 180.0}]}"
 ```
 
-設定した座標系名や角度はreadで確認できる．姿勢・角速度・加速度・重力ベクトルは，次に姿勢の値が更新されるときから，新しい取付向きの設定に従った値になる．
+姿勢・角速度・加速度・重力ベクトルは，次に姿勢の値が更新されるときから，新しい取付向きの設定に従った値になる．
 
-`frame_id`，`flip_z_axis`，`adjust_rpy_deg` はノードを再起動すると表の初期値へ戻る．終端抵抗の設定はDXMIOの電源を入れ直しても維持される．
+ただし，`frame_id`，`flip_z_axis`，`adjust_rpy_deg` はノードを再起動すると表の初期値へ戻る．
+一方，終端抵抗など，DXMIO自身に書き込まれる設定は電源の再投入やノードの再起動をしても維持される．
 
 ### OpenCR IMU
 

@@ -329,6 +329,7 @@ extra:                                           # DynamixelExtra型
       green_percent: [.nan, .nan, 0.0, 0.0]
    bus_watchdog_ms: [500.0, 500.0, 500.0, .nan]
    reboot: [false, false, false, false]
+   change_id: []
 ```
 
 ### `dynamixel_handler_msgs::msg::DxlCommandsX` type 
@@ -618,9 +619,12 @@ extraを読み書きするためのトピック `/dynamixel/command/extra` と `
    DynamixelExtraLed led
    float64[] bus_watchdog_ms
    bool[] reboot
+   uint16[] change_id
    ```
 
-非対応機種の `/dynamixel/state/extra` では，項目ごとに次の値が入る．
+`id_list` に変更前のID，`change_id` に変更後のID（0〜252）を同じ順・長さで指定する．状態topicでは `change_id` は空配列 `[]` となる．
+
+非対応機種の `/dynamixel/state/extra` では，`change_id` を除き，項目ごとに次の値が入る．
 - `float64[]` 系の項目は `nan`
 - `uint16[]` / `uint8[]` 系の項目は `0`
 - `string[]` 系の項目は空文字 `""`
@@ -824,7 +828,7 @@ Dynamixelの起動、停止、エラー解除などをショートカット的�
 
    ```yml
    string   command ""                # コマンド文字列
-   uint16[]  id_list                  # 適用するサーボのIDリスト, 省略すると認識されているすべてのIDを選択したのと同等となる．
+   uint16[]  id_list                  # 適用するサーボのIDリスト, 省略すると認識されているすべてのIDを選択したのと同等となる（change_idを除く）．
    # === high level commands : ユーザの利用を想定 ===
    string CLEAR_ERROR ="clear_error"  # ("CE"): ハードウェアエラー(ex. overload)をrebootによって解除する．
                                       #         加えて，homing offsetを用いて現在角がジャンプしないように調整する．
@@ -832,6 +836,8 @@ Dynamixelの起動、停止、エラー解除などをショートカット的�
    string TORQUE_ON  ="torque_on"     # ("TON") : 安全にトルクをenableにする．目標姿勢を現在姿勢へ一致させ，速度を0にする．
    string REMOVE_ID  ="remove_id"     # ("RMID"): 指定したIDのサーボを認識リストから削除する．
    string ADD_ID     ="add_id"        # ("ADID"): 指定したIDのサーボを認識リストに追加する．
+   string CHANGE_ID  ="change_id"     # : 認識済みのサーボのIDを変更する．
+                                      #   id_list: [変更前ID, 変更後ID] の2要素を指定（各IDは0〜252）．
    # === low level commands : 開発者向け ===
    string RESET_OFFSET="reset_offset" # : homing_offset アドレスに 0 を書き込む．
    string ENABLE ="enable"            # : torque enable アドレスに true を書き込む．
@@ -967,6 +973,7 @@ string MODE_UNSET               = "unset"   # 指定ポートのモードの設�
 有効化・読取周期・コマンドラインでの使用例は[DXMIO IMUの説明](../ReadMe.md#dxmio-imu)を参照．
 各配列は `id_list` と同じ順で対応し，`data[i]` は `id_list[i]` のIMUデータを表す．
 設定変更は，対象のDXMIOのIDを `id_list` に，設定値を同じ順に並べて `/dynamixel/dxmio_imu/write` へ送信する．設定できる項目は `frame_id`，`flip_z_axis`，`adjust_rpy_deg`，`terminator` である．
+IDの変更には `/dynamixel/shortcut` の `change_id` を使うことを想定している．指定方法と変更後の設定の扱いは [DXMIO IMUの説明](../ReadMe.md#dxmio-imu)を参照．
 
 ### Topic type detail
 
